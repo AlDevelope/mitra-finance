@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "User Profile",
+      "description": "User profile information with roles",
+      "type": "object",
+      "properties": {
+        "full_name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "customer"] },
+        "phone_number": { "type": "string" },
+        "nasabah_id": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["full_name", "role"]
+    },
+    "Nasabah": {
+      "title": "Debtor / Nasabah",
+      "description": "Debtor information and loan status",
+      "type": "object",
+      "properties": {
+        "nama": { "type": "string" },
+        "barang": { "type": "string" },
+        "uang_muka": { "type": "integer" },
+        "jumlah_angsuran": { "type": "integer" },
+        "rp_per_angsuran": { "type": "integer" },
+        "satuan": { "type": "string" },
+        "total_hutang": { "type": "integer" },
+        "angsuran_terbayar": { "type": "integer" },
+        "sisa_angsuran": { "type": "integer" },
+        "sisa_hutang": { "type": "integer" },
+        "progress_persen": { "type": "number" },
+        "status": { "type": "string", "enum": ["AKTIF", "LUNAS", "MENUNGGAK"] },
+        "whatsapp_number": { "type": "string" },
+        "catatan": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nama", "barang", "jumlah_angsuran", "rp_per_angsuran"]
+    },
+    "Angsuran": {
+      "title": "Payment Record",
+      "description": "Individual payment records for a debtor",
+      "type": "object",
+      "properties": {
+        "nasabah_id": { "type": "string" },
+        "angsuran_ke": { "type": "integer" },
+        "tanggal_bayar": { "type": "string", "format": "date" },
+        "jumlah_bayar": { "type": "integer" },
+        "sisa_setelah_bayar": { "type": "integer" },
+        "keterangan": { "type": "string" },
+        "dibuat_oleh": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nasabah_id", "angsuran_ke", "tanggal_bayar", "jumlah_bayar"]
+    },
+    "Keuangan": {
+      "title": "Financial Summary",
+      "description": "Global financial data for the dashboard",
+      "type": "object",
+      "properties": {
+        "uang_nasabah": { "type": "integer" },
+        "uang_bank_neo": { "type": "integer" },
+        "uang_dipinjamkan": { "type": "integer" },
+        "uang_cash": { "type": "integer" },
+        "total_keuntungan": { "type": "integer" },
+        "uang_tanah_lama": { "type": "integer" },
+        "uang_tanah_baru": { "type": "integer" },
+        "uang_stokbit": { "type": "integer" },
+        "uang_renov": { "type": "integer" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "updated_by": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/profiles/{userId}": {
+      "schema": "Profile",
+      "description": "User profiles by auth UID"
+    },
+    "/nasabah/{nasabahId}": {
+      "schema": "Nasabah",
+      "description": "Collection of debtors"
+    },
+    "/nasabah/{nasabahId}/history/{angsuranId}": {
+      "schema": "Angsuran",
+      "description": "Payment history for a specific debtor"
+    },
+    "/keuangan/summary": {
+      "schema": "Keuangan",
+      "description": "Global financial summary"
+    }
+  }
+}
