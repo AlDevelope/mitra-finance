@@ -51,12 +51,42 @@ export interface Angsuran {
   created_at: any;
 }
 
+export interface KosanRecord {
+  id: string;
+  bulan: string;
+  keluar: number;
+  masuk: number;
+  jumlah: number; // accumulated
+  keterangan?: string;
+  created_at: any;
+}
+
+export interface AngsuranLog {
+  id: string;
+  tanggal: string;
+  keterangan: string;
+  masuk: number;
+  keluar: number;
+  total: number; // running balance
+  created_at: any;
+}
+
+export interface MacetRecord {
+  id: string;
+  nama: string;
+  barang: string;
+  sisa_hutang: number;
+  terakhir_bayar: string;
+  keterangan?: string;
+  created_at: any;
+}
+
 export interface Keuangan {
-  uang_nasabah: number;
-  uang_bank_neo: number;
-  uang_dipinjamkan: number;
-  uang_cash: number;
-  total_keuntungan: number;
+  uang_nasabah: number; // sum of nasabah sisa_hutang
+  uang_bank_neo: number; // derived: cash - dipinjamkan
+  uang_dipinjamkan: number; // sum of tanah lama/baru, stokbit, renov
+  uang_cash: number; // primary input
+  total_keuntungan: number; // sum of nasabah + bank neo + dipinjamkan
   uang_tanah_lama: number;
   uang_tanah_baru: number;
   uang_stokbit: number;
@@ -67,6 +97,7 @@ export interface Keuangan {
 
 export interface Settings {
   logo_url?: string;
+  kosan_modal?: number;
   category_labels: {
     uang_tanah_lama: string;
     uang_tanah_baru: string;

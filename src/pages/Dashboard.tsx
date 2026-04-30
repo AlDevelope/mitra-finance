@@ -125,17 +125,21 @@ export const Dashboard: React.FC = () => {
   const calculatedUangDipinjamkan = (keuangan?.uang_tanah_lama || 0) + 
                                     (keuangan?.uang_tanah_baru || 0) + 
                                     (keuangan?.uang_stokbit || 0) + 
-                                    (keuangan?.uang_renov || 0) + 
-                                    (settings?.custom_categories || []).reduce((acc, c) => acc + (keuangan?.[c.id] || 0), 0);
-  const calculatedTotalKeuntungan = totalSisaHutang + (keuangan?.uang_bank_neo || 0) + (keuangan?.uang_cash || 0) + calculatedUangDipinjamkan;
+                                    (keuangan?.uang_renov || 0);
+
+  // Bank Neo derived: Uang Cash - Uang yang dipinjamkan
+  const calculatedBankNeo = (keuangan?.uang_cash || 0) - calculatedUangDipinjamkan;
+
+  // Total Untung: Uang Nasabah + Uang Bank Neo + Uang Dipinjamkan
+  const calculatedTotalUntung = totalSisaHutang + calculatedBankNeo + calculatedUangDipinjamkan;
 
   const stats = [
     { label: 'Uang Cash', value: keuangan?.uang_cash || 0, icon: Wallet, color: 'bg-green-500' },
-    { label: 'Total Nasabah', value: totalNasabah, icon: Users, color: 'bg-blue-500', isCurrency: false },
-    { label: 'Total Keuntungan', value: calculatedTotalKeuntungan, icon: TrendingUp, color: 'bg-accent' },
-    { label: 'Uang Dipinjamkan', value: calculatedUangDipinjamkan, icon: DollarSign, color: 'bg-purple-500' },
     { label: 'Uang Nasabah', value: totalSisaHutang, icon: Landmark, color: 'bg-indigo-500' },
-    { label: 'Bank Neo', value: keuangan?.uang_bank_neo || 0, icon: Landmark, color: 'bg-sky-500' },
+    { label: 'Uang Bank Neo', value: calculatedBankNeo, icon: Landmark, color: 'bg-sky-500' },
+    { label: 'Uang Dipinjamkan', value: calculatedUangDipinjamkan, icon: DollarSign, color: 'bg-purple-500' },
+    { label: 'Total Untung', value: calculatedTotalUntung, icon: TrendingUp, color: 'bg-accent' },
+    { label: 'Total Nasabah', value: totalNasabah, icon: Users, color: 'bg-blue-500', isCurrency: false },
     { label: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'bg-emerald-500' },
     { label: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'bg-teal-500' },
     ...(settings?.custom_categories || []).map(c => ({
@@ -153,17 +157,15 @@ export const Dashboard: React.FC = () => {
 
   const barData = [
     { name: 'Cash', value: keuangan?.uang_cash || 0 },
-    { name: 'Neo', value: keuangan?.uang_bank_neo || 0 },
+    { name: 'Neo', value: calculatedBankNeo },
     { name: 'Dipinjam', value: calculatedUangDipinjamkan },
   ];
 
   const landData = [
     { name: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0 },
     { name: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0 },
-    ...(settings?.custom_categories || []).map(c => ({
-      name: c.label,
-      value: keuangan?.[c.id] || 0
-    }))
+    { name: 'Stokbit', value: keuangan?.uang_stokbit || 0 },
+    { name: 'Renov', value: keuangan?.uang_renov || 0 }
   ];
 
   return (
@@ -358,7 +360,7 @@ export const Dashboard: React.FC = () => {
               <div className="p-5 bg-gray-50 rounded-3xl flex items-center justify-between">
                  <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aset Stokbit (M3110)</p>
-                    <p className="text-xl font-bold text-primary">{formatRupiah(3110000)}</p>
+                    <p className="text-xl font-bold text-primary">{formatRupiah(keuangan?.uang_stokbit || 0)}</p>
                  </div>
                  <div className="bg-white p-3 rounded-2xl shadow-sm">
                     <TrendingUp className="w-6 h-6 text-sky-500" />

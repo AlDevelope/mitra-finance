@@ -44,8 +44,8 @@
     @apply !bg-slate-800/50;
   }
 
-  .text-gray-500, .text-gray-400 {
-    @apply !text-slate-400;
+  .text-gray-900, .text-gray-800, .text-gray-700 {
+    @apply !text-slate-100;
   }
 
   .border-gray-100, .border-gray-50 {

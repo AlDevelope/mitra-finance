@@ -46,14 +46,13 @@ export const KeuanganPage: React.FC = () => {
     }
   }, [keuangan, totalSisaHutangNasabah]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (updatedForm: any) => {
     setSaving(true);
     setSuccess(false);
     
     try {
       await updateDoc(doc(db, 'keuangan', 'summary'), {
-        ...form,
+        ...updatedForm,
         updated_at: serverTimestamp()
       });
       setSuccess(true);
@@ -66,9 +65,9 @@ export const KeuanganPage: React.FC = () => {
     }
   };
 
-  const handleAddCategory = async () => {
+  const handleAddCustomField = async () => {
     if (!settings) return;
-    const label = prompt('Masukkan nama kategori baru:');
+    const label = prompt('Masukkan nama kotak keuangan baru:');
     if (!label) return;
 
     const id = 'custom_' + Date.now();
@@ -77,10 +76,12 @@ export const KeuanganPage: React.FC = () => {
       custom_categories: [...(settings.custom_categories || []), { id, label }]
     };
     
+    setSaving(true);
     const ok = await updateSettings(newSettings);
     if (ok) {
-      setForm((prev: any) => ({ ...prev, [id]: 0 }));
-      await updateDoc(doc(db, 'keuangan', 'summary'), { [id]: 0 });
+      const newForm = { ...form, [id]: 0 };
+      setForm(newForm);
+      await handleSave(newForm);
     }
   };
 
@@ -97,6 +98,7 @@ export const KeuanganPage: React.FC = () => {
       const newForm = { ...form };
       delete newForm[id];
       setForm(newForm);
+      await handleSave(newForm);
     }
   };
 
@@ -127,12 +129,38 @@ export const KeuanganPage: React.FC = () => {
     }
 
     const ok = await updateSettings(newSettings);
-    if (ok) setEditingField(null);
+    if (ok) {
+      setEditingField(null);
+      handleSave(form);
+    }
   };
 
   const handleChange = (key: string, value: string) => {
     const num = parseInt(value.replace(/[^0-9]/g, '')) || 0;
-    setForm((prev: any) => ({ ...prev, [key]: num }));
+    const newForm = { ...form, [key]: num };
+    
+    // Formula calculations as per user request:
+    // 1. Uang yang dipinjamkan = Uang Tanah Lama + uang tanah baru + uang stokbit + uang renov
+    const dipinjamkan = (newForm.uang_tanah_lama || 0) + 
+                        (newForm.uang_tanah_baru || 0) + 
+                        (newForm.uang_stokbit || 0) + 
+                        (newForm.uang_renov || 0);
+    
+    // 2. uang yang ada (bank neo) = Uang cash - uang yang di pinjamkan
+    const bankNeo = (newForm.uang_cash || 0) - dipinjamkan;
+
+    // 3. uang yang ada (nasabah) = sum of all sisa hutang (handled via useEffect)
+    
+    // 4. total untung = uang nasabah + uang bank neo + uang dipinjamkan + SUM OF ALL CUSTOM CATEGORIES
+    const customSum = (settings?.custom_categories || []).reduce((acc, c) => acc + (newForm[c.id] || 0), 0);
+    const totalUntung = (newForm.uang_nasabah || 0) + bankNeo + dipinjamkan + customSum;
+
+    setForm({
+      ...newForm,
+      uang_dipinjamkan: dipinjamkan,
+      uang_bank_neo: bankNeo,
+      total_keuntungan: totalUntung
+    });
   };
 
   if (loadingKeuangan || loadingNasabah) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data keuangan...</div>;
@@ -140,11 +168,11 @@ export const KeuanganPage: React.FC = () => {
   if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
   const coreFields = [
-    { key: 'uang_nasabah', label: 'Uang Nasabah (Pinjaman)', icon: Landmark, readonly: true },
-    { key: 'uang_bank_neo', label: 'Uang Bank Neo', icon: Landmark },
-    { key: 'uang_dipinjamkan', label: 'Uang Yang Dipinjamkan', icon: DollarSign, readonly: true },
     { key: 'uang_cash', label: 'Uang Cash', icon: Wallet },
-    { key: 'total_keuntungan', label: 'Total Keuntungan', icon: TrendingUp, readonly: true },
+    { key: 'uang_nasabah', label: 'Uang Nasabah (Nasabah)', icon: Landmark, readonly: true },
+    { key: 'uang_bank_neo', label: 'Uang Bank Neo', icon: Landmark, readonly: true },
+    { key: 'uang_dipinjamkan', label: 'Uang yang Dipinjamkan', icon: DollarSign, readonly: true },
+    { key: 'total_keuntungan', label: 'Total Untung', icon: TrendingUp, readonly: true },
     { key: 'uang_tanah_lama', label: settings?.category_labels.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, canEdit: true },
     { key: 'uang_stokbit', label: 'Uang Stokbit (M3110)', icon: TrendingUp },
@@ -169,15 +197,15 @@ export const KeuanganPage: React.FC = () => {
           <p className="text-gray-500 mt-1">Kelola saldo dan kustomisasi kategori keuangan Anda</p>
         </div>
         <button 
-          onClick={handleAddCategory}
+          onClick={handleAddCustomField}
           type="button"
-          className="flex items-center gap-2 px-6 py-4 bg-primary text-white rounded-[24px] font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20"
+          className="flex items-center gap-2 px-8 py-4 bg-white border border-gray-100 text-gray-600 rounded-[24px] font-bold text-sm hover:bg-gray-50 transition-all shadow-sm"
         >
-          <Plus className="w-5 h-5" /> Tambah Kotak
+          <Plus className="w-5 h-5 text-accent" /> Tambah Kotak
         </button>
       </header>
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {allFields.map((field) => (
           <div key={field.key} className="glass p-8 rounded-[40px] space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[160px]">
              {field.canDelete && !editingField && (

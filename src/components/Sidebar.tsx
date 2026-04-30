@@ -7,7 +7,11 @@ import {
   Upload, 
   Settings, 
   LogOut,
-  Bell
+  Bell,
+  Home,
+  History,
+  Calculator,
+  AlertTriangle
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -19,6 +23,9 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
+  { icon: Home, label: 'Kosanku', path: '/kosanku' },
+  { icon: History, label: 'Angsuran Log', path: '/angsuran-log' },
+  { icon: Calculator, label: 'Simulasi', path: '/simulasi' },
   { icon: Bell, label: 'Pemberitahuan', path: '/notifications' },
   { icon: Upload, label: 'Import Excel', path: '/import' },
   { icon: Settings, label: 'Settings', path: '/settings' },

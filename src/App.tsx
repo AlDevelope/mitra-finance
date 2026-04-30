@@ -9,7 +9,9 @@ import { EditNasabah } from './pages/EditNasabah';
 import { AddNasabah } from './pages/AddNasabah';
 import { KeuanganPage } from './pages/KeuanganPage';
 import { ImportPage } from './pages/ImportPage';
-import { TagihanPage } from './pages/TagihanPage';
+import { KosankuPage } from './pages/KosankuPage';
+import { AngsuranLogPage } from './pages/AngsuranLogPage';
+import { SimulasiPage } from './pages/SimulasiPage';
 import { SystemSettings } from './pages/SystemSettings';
 import { NotificationsPage } from './pages/NotificationsPage';
 
@@ -29,14 +31,13 @@ export default function App() {
             <Route path="/nasabah/:id" element={<NasabahDetail />} />
             <Route path="/nasabah/:id/edit" element={<EditNasabah />} />
             <Route path="/keuangan" element={<KeuanganPage />} />
+            <Route path="/kosanku" element={<KosankuPage />} />
+            <Route path="/angsuran-log" element={<AngsuranLogPage />} />
+            <Route path="/simulasi" element={<SimulasiPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SystemSettings />} />
           </Route>
-
-          {/* Customer Routes */}
-          <Route path="/tagihan" element={<TagihanPage />} />
-          <Route path="/portal/:id" element={<TagihanPage />} />
 
           {/* Redirects */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

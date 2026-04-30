@@ -35,6 +35,7 @@ export const NasabahDetail: React.FC = () => {
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [payNote, setPayNote] = useState('');
   const [payLoading, setPayLoading] = useState(false);
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -139,6 +140,34 @@ export const NasabahDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteHistory = async (record: Angsuran) => {
+    if (!id || !nasabah || !window.confirm(`Hapus histori pembayaran MGU ke-${record.angsuran_ke}? Stats nasabah akan dikembalikan.`)) return;
+    
+    setDeletingHistoryId(record.id);
+    try {
+      // 1. Delete record
+      await deleteDoc(doc(db, 'nasabah', id, 'history', record.id));
+
+      // 2. Rollback nasabah stats
+      const prevTerbayar = record.angsuran_ke - 1;
+      const sisa = nasabah.jumlah_angsuran - prevTerbayar;
+      
+      await updateDoc(doc(db, 'nasabah', id), {
+        angsuran_terbayar: prevTerbayar,
+        sisa_angsuran: sisa,
+        sisa_hutang: sisa * nasabah.rp_per_angsuran,
+        progress_persen: Math.round((prevTerbayar / nasabah.jumlah_angsuran) * 100),
+        updated_at: serverTimestamp()
+      });
+      
+      alert('Histori pembayaran berhasil dihapus dan stats nasabah telah dikembalikan.');
+    } catch (err: any) {
+      alert(`Gagal menghapus riwayat: ${err.message}`);
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center font-bold text-gray-400">Memuat detail nasabah...</div>;
   if (!nasabah) return <div className="p-8 text-center font-bold text-gray-400">Nasabah tidak ditemukan (mungkin sudah lunas/dihapus)</div>;
 
@@ -208,32 +237,20 @@ export const NasabahDetail: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-accent" />
                   {nasabah.barang}
                 </p>
-                <div className="mt-4 flex gap-3">
-                   <a 
-                    href={generateWhatsAppMessage(nasabah, nasabah.angsuran_terbayar + 1)}
-                    target="_blank"
-                    className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-green-500/20 hover:scale-[1.02] transition-all"
-                   >
-                     <MessageCircle className="w-4 h-4" /> WhatsApp
-                   </a>
-                  <button 
-                    onClick={() => {
-                        const link = `${window.location.origin}/portal/${id}?preview=true`;
-                        navigator.clipboard.writeText(link);
-                        alert('Link portal disalin ke clipboard!');
-                    }}
-                    className="bg-white border border-gray-100 text-gray-500 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all font-bold"
-                  >
-                    <Share2 className="w-4 h-4" /> Share Link
-                  </button>
-                   <Link 
-                     to={`/portal/${id}`}
-                     target="_blank"
-                     className="bg-white border border-gray-100 text-accent px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-accent/5 transition-all"
-                   >
-                     <TrendingUp className="w-4 h-4" /> Preview Portal
-                   </Link>
-                </div>
+                  <div className="mt-4 flex flex-col sm:flex-row gap-4">
+                     <button 
+                      onClick={() => setShowShareCard(true)}
+                      className="bg-green-500 text-white px-8 py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:scale-[1.02] transition-all"
+                     >
+                       <MessageCircle className="w-6 h-6" /> WhatsApp
+                     </button>
+                     <button 
+                      onClick={() => setShowShareCard(true)}
+                      className="bg-accent text-white px-8 py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
+                     >
+                       <Share2 className="w-6 h-6" /> Bagikan Status
+                     </button>
+                  </div>
               </div>
             </div>
 
@@ -316,6 +333,7 @@ export const NasabahDetail: React.FC = () => {
                     <th className="pb-4">MGU Ke</th>
                     <th className="pb-4">Jumlah</th>
                     <th className="pb-4">Status</th>
+                    <th className="pb-4 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -323,10 +341,20 @@ export const NasabahDetail: React.FC = () => {
                     <tr key={record.id} className="text-sm font-medium text-gray-700">
                       <td className="py-4">{history.length - i}</td>
                       <td className="py-4">{formatDisplayDate(record.tanggal_bayar)}</td>
-                      <td className="py-4">MGU {record.angsuran_ke}</td>
+                      <td className="py-4 text-accent font-bold">MGU {record.angsuran_ke}</td>
                       <td className="py-4 font-bold text-primary">{formatRupiah(record.jumlah_bayar)}</td>
                       <td className="py-4">
                         <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-full uppercase">VERIFIED</span>
+                      </td>
+                      <td className="py-4 text-right">
+                        <button 
+                          onClick={() => handleDeleteHistory(record)}
+                          disabled={deletingHistoryId === record.id}
+                          className="p-2 text-danger hover:bg-danger/10 rounded-lg transition-all disabled:opacity-30"
+                          title="Hapus Pembayaran"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}

@@ -278,8 +278,8 @@ export const ImportPage: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Import Nasabah</h2>
-          <p className="text-gray-500">Unggah file Excel untuk pendaftaran massal</p>
+          <h2 className="text-3xl font-bold tracking-tight">Import Nasabah (Data Induk)</h2>
+          <p className="text-gray-500">Unggah file Excel untuk pendaftaran massal nasabah dan riwayatnya</p>
         </div>
       </header>
 
