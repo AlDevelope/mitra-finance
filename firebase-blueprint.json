@@ -71,6 +71,44 @@
         "updated_at": { "type": "string", "format": "date-time" },
         "updated_by": { "type": "string" }
       }
+    },
+    "Settings": {
+      "title": "Application Settings",
+      "description": "Customizable configuration for the app",
+      "type": "object",
+      "properties": {
+        "logo_url": { "type": "string" },
+        "category_labels": {
+          "type": "object",
+          "properties": {
+            "uang_tanah_lama": { "type": "string" },
+            "uang_tanah_baru": { "type": "string" }
+          }
+        },
+        "custom_categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "Notification": {
+      "title": "System Notification",
+      "description": "Event logs and alerts for admins",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["INFO", "SUCCESS", "WARNING", "ERROR"] },
+        "is_read": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "message", "type", "is_read"]
     }
   },
   "firestore": {
@@ -89,6 +127,14 @@
     "/keuangan/summary": {
       "schema": "Keuangan",
       "description": "Global financial summary"
+    },
+    "/settings/app": {
+      "schema": "Settings",
+      "description": "Global application settings"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "System wide notifications"
     }
   }
 }

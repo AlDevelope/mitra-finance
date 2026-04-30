@@ -5,9 +5,10 @@ import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore'
 import { Nasabah, Angsuran, NasabahStatus } from '../types';
 import { formatRupiah, generateNasabahPaymentMessage } from '../lib/formulas';
 import { signOut } from 'firebase/auth';
-import { LogOut, MessageCircle, TrendingUp, CheckCircle2, History, Package, Wallet, Clock, CreditCard } from 'lucide-react';
+import { LogOut, MessageCircle, TrendingUp, CheckCircle2, History, Package, Wallet, Clock, CreditCard, Camera } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { NasabahShareCard } from '../components/NasabahShareCard';
 
 import { useParams } from 'react-router-dom';
 
@@ -17,6 +18,7 @@ export const TagihanPage: React.FC = () => {
   const [nasabah, setNasabah] = useState<Nasabah | null>(null);
   const [history, setHistory] = useState<Angsuran[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showShareCard, setShowShareCard] = useState(false);
 
   const effectiveNasabahId = id || profile?.nasabah_id;
 
@@ -46,9 +48,11 @@ export const TagihanPage: React.FC = () => {
       nasabahUnsub();
       historyUnsub();
     };
-  }, [profile?.nasabah_id]);
+  }, [effectiveNasabahId]); // Fixed dependency
 
   const handleLogout = () => signOut(auth);
+
+  const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
 
   if (loading) return <div className="p-10 text-center font-bold text-gray-400">Memuat tagihan Anda...</div>;
 
@@ -129,11 +133,11 @@ export const TagihanPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="p-4 bg-white/10 rounded-2xl">
-                        <p className="text-[10px] text-white/50 font-bold uppercase mb-1">Minggu Lagi</p>
+                        <p className="text-[10px] text-white/50 font-bold uppercase mb-1">MGU Lagi</p>
                         <p className="text-xl font-bold">{nasabah.sisa_angsuran}</p>
                      </div>
                      <div className="p-4 bg-white/10 rounded-2xl">
-                        <p className="text-[10px] text-white/50 font-bold uppercase mb-1">Per Minggu</p>
+                        <p className="text-[10px] text-white/50 font-bold uppercase mb-1">Per MGU</p>
                         <p className="text-xl font-bold">{formatRupiah(nasabah.rp_per_angsuran)}</p>
                      </div>
                   </div>
@@ -159,22 +163,30 @@ export const TagihanPage: React.FC = () => {
                     )}>
                       {isPaid ? <CheckCircle2 className="w-6 h-6" /> : step}
                     </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">Mg {step}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">MGU {step}</span>
                  </div>
                );
             })}
           </div>
         </section>
 
-        <div className="flex gap-4">
-           <a 
-            href={generateNasabahPaymentMessage(nasabah)}
-            target="_blank"
-            className="flex-1 bg-accent text-white p-5 rounded-[24px] font-bold flex items-center justify-center gap-3 shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
-           >
-             <CreditCard className="w-6 h-6" /> Bayar Sekarang
-           </a>
-        </div>
+        {!isPreview && (
+          <div className="flex gap-4">
+             <a 
+              href={generateNasabahPaymentMessage(nasabah)}
+              target="_blank"
+              className="flex-[2] bg-accent text-white p-5 rounded-[24px] font-bold flex items-center justify-center gap-3 shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
+             >
+               <CreditCard className="w-6 h-6" /> Bayar Sekarang
+             </a>
+             <button 
+              onClick={() => setShowShareCard(true)}
+              className="flex-1 bg-white border border-gray-100 text-gray-500 p-5 rounded-[24px] font-bold flex items-center justify-center gap-3 hover:bg-gray-50 transition-all"
+             >
+               <Camera className="w-6 h-6" /> Bagikan Status
+             </button>
+          </div>
+        )}
 
         <section className="space-y-4">
            <h3 className="text-xl font-bold flex items-center gap-2 px-2">
@@ -189,13 +201,13 @@ export const TagihanPage: React.FC = () => {
                         <Clock className="w-5 h-5" />
                      </div>
                      <div>
-                        <p className="font-bold text-sm">Minggu ke-{record.angsuran_ke}</p>
+                        <p className="font-bold text-sm">MGU ke-{record.angsuran_ke}</p>
                         <p className="text-xs text-gray-400">{record.tanggal_bayar}</p>
                      </div>
                   </div>
                   <div className="text-right">
                      <p className="font-bold text-primary">{formatRupiah(record.jumlah_bayar)}</p>
-                     <p className="text-[10px] text-success font-bold uppercase tracking-wider">LUNA S</p>
+                     <p className="text-[10px] text-success font-bold uppercase tracking-wider">LUNAS</p>
                   </div>
                </div>
              ))}
@@ -212,6 +224,16 @@ export const TagihanPage: React.FC = () => {
         <p>Mitra Finance 99</p>
         <p className="italic">"Berkembang, Bertumbuh, Berinovasi"</p>
       </footer>
+
+      {showShareCard && nasabah && (
+        <NasabahShareCard 
+          nasabah={nasabah} 
+          history={history}
+          onClose={() => setShowShareCard(false)} 
+        />
+      )}
     </div>
   );
 };
+
+export default TagihanPage;

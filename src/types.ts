@@ -64,3 +64,28 @@ export interface Keuangan {
   updated_at: any;
   updated_by?: string;
 }
+
+export interface Settings {
+  logo_url?: string;
+  category_labels: {
+    uang_tanah_lama: string;
+    uang_tanah_baru: string;
+  };
+  custom_categories: { id: string; label: string }[];
+}
+
+export enum NotificationType {
+  INFO = 'INFO',
+  SUCCESS = 'SUCCESS',
+  WARNING = 'WARNING',
+  ERROR = 'ERROR',
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  is_read: boolean;
+  created_at: any;
+}

@@ -13,7 +13,11 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        'html-to-image': path.resolve(__dirname, 'node_modules/html-to-image/es/index.js'),
       },
+    },
+    optimizeDeps: {
+      include: ['html-to-image'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

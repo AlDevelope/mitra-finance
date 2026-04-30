@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useKeuangan } from '../hooks/useKeuangan';
-import { formatRupiah } from '../lib/formulas';
+import { useSettings } from '../hooks/useSettings';
+import { formatRupiah, formatDisplayDate, formatDateToISO, excelSerialToDate } from '../lib/formulas';
 import { 
   DollarSign, 
   Users, 
@@ -14,9 +15,9 @@ import {
   BarChart3
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Nasabah, NasabahStatus } from '../types';
+import { Nasabah, NasabahStatus, NotificationType } from '../types';
 import { 
   PieChart, 
   Pie, 
@@ -34,15 +35,21 @@ import { cn } from '../lib/utils';
 
 export const Dashboard: React.FC = () => {
   const { data: keuangan, loading: keuanganLoading, error: keuanganError } = useKeuangan();
+  const { settings } = useSettings();
   const [totalNasabah, setTotalNasabah] = useState(0);
   const [activeNasabah, setActiveNasabah] = useState(0);
   const [lunasNasabah, setLunasNasabah] = useState(0);
   const [totalSisaHutang, setTotalSisaHutang] = useState(0);
   const [nasabahError, setNasabahError] = useState<string | null>(null);
+  
+  const labels = {
+    uang_tanah_lama: settings?.category_labels.uang_tanah_lama || 'Tanah Lama',
+    uang_tanah_baru: settings?.category_labels.uang_tanah_baru || 'Tanah Baru'
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'nasabah'), (snap) => {
-      const docs = snap.docs.map(doc => doc.data() as Nasabah);
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Nasabah));
       setTotalNasabah(snap.size);
       
       const active = docs.filter(d => d.status !== NasabahStatus.LUNAS).length;
@@ -52,6 +59,34 @@ export const Dashboard: React.FC = () => {
       setActiveNasabah(active);
       setLunasNasabah(lunas);
       setTotalSisaHutang(sisaHutang);
+
+      // Dynamic Check for Due Dates (Notifications)
+      docs.forEach(async (n) => {
+        if (n.status === NasabahStatus.AKTIF) {
+          const lastUpdate = n.updated_at?.toDate() || n.created_at?.toDate() || new Date();
+          const diffDays = Math.floor((new Date().getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24));
+          
+          if (diffDays >= 7) {
+             const todayStr = new Date().toISOString().split('T')[0];
+             const notifId = `due_${n.id}_${todayStr}`;
+             
+             // Check if already notified today using a dummy doc or just checking notifications collection
+             // For simplicity, we can just check if any notification with this title exists
+             try {
+                // We'll use a fixed ID for today's notification per user to avoid duplicates
+                await setDoc(doc(db, 'notifications', notifId), {
+                  title: 'Waktunya Bayar!',
+                  message: `Nasabah ${n.nama} (${n.barang}) sudah masuk waktu bayar mingguan (Sudah ${diffDays} hari sejak transaksi terakhir).`,
+                  type: NotificationType.WARNING,
+                  is_read: false,
+                  created_at: serverTimestamp()
+                }, { merge: true });
+             } catch (e) {
+                console.error("Error creating due notification", e);
+             }
+          }
+        }
+      });
     }, (err) => {
       console.error("Dashboard Nasabah Error:", err);
       setNasabahError(err.message);
@@ -87,8 +122,12 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
-  const calculatedUangDipinjamkan = (keuangan?.uang_tanah_lama || 0) + (keuangan?.uang_tanah_baru || 0) + (keuangan?.uang_stokbit || 0) + (keuangan?.uang_renov || 0);
-  const calculatedTotalKeuntungan = totalSisaHutang + (keuangan?.uang_bank_neo || 0) + calculatedUangDipinjamkan;
+  const calculatedUangDipinjamkan = (keuangan?.uang_tanah_lama || 0) + 
+                                    (keuangan?.uang_tanah_baru || 0) + 
+                                    (keuangan?.uang_stokbit || 0) + 
+                                    (keuangan?.uang_renov || 0) + 
+                                    (settings?.custom_categories || []).reduce((acc, c) => acc + (keuangan?.[c.id] || 0), 0);
+  const calculatedTotalKeuntungan = totalSisaHutang + (keuangan?.uang_bank_neo || 0) + (keuangan?.uang_cash || 0) + calculatedUangDipinjamkan;
 
   const stats = [
     { label: 'Uang Cash', value: keuangan?.uang_cash || 0, icon: Wallet, color: 'bg-green-500' },
@@ -97,8 +136,14 @@ export const Dashboard: React.FC = () => {
     { label: 'Uang Dipinjamkan', value: calculatedUangDipinjamkan, icon: DollarSign, color: 'bg-purple-500' },
     { label: 'Uang Nasabah', value: totalSisaHutang, icon: Landmark, color: 'bg-indigo-500' },
     { label: 'Bank Neo', value: keuangan?.uang_bank_neo || 0, icon: Landmark, color: 'bg-sky-500' },
-    { label: 'Tanah Lama', value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'bg-emerald-500' },
-    { label: 'Tanah Baru', value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'bg-teal-500' },
+    { label: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'bg-emerald-500' },
+    { label: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'bg-teal-500' },
+    ...(settings?.custom_categories || []).map(c => ({
+      label: c.label,
+      value: keuangan?.[c.id] || 0,
+      icon: Wallet,
+      color: 'bg-blue-500'
+    }))
   ];
 
   const pieData = [
@@ -113,19 +158,33 @@ export const Dashboard: React.FC = () => {
   ];
 
   const landData = [
-    { name: 'Tanah Lama', value: keuangan?.uang_tanah_lama || 0 },
-    { name: 'Tanah Baru', value: keuangan?.uang_tanah_baru || 0 },
+    { name: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0 },
+    { name: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0 },
+    ...(settings?.custom_categories || []).map(c => ({
+      name: c.label,
+      value: keuangan?.[c.id] || 0
+    }))
   ];
 
   return (
     <div className="space-y-8 pb-10">
-      <header className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard Admin</h2>
-          <p className="text-gray-500 mt-1">Sistem Pemantauan Digital Mitra Finance 99</p>
+      <header className="flex justify-between items-center sm:items-end">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            {settings?.logo_url ? (
+              <img src={settings.logo_url} alt="Logo" className="w-16 h-16 object-contain hidden md:block" />
+            ) : (
+              <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain hidden md:block" onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }} />
+            )}
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard Admin</h2>
+            <p className="text-gray-500 mt-1">Sistem Pemantauan Digital Mitra Finance 99</p>
+          </div>
         </div>
         <div className="text-right hidden md:block">
-          <p className="text-sm font-medium text-gray-400">Tagline</p>
           <p className="text-primary font-bold italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
       </header>

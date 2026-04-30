@@ -7,25 +7,26 @@ import {
   Upload, 
   Settings, 
   LogOut,
-  TrendingUp,
-  Landmark,
-  Hammer
+  Bell
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../hooks/useSettings';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
+  { icon: Bell, label: 'Pemberitahuan', path: '/notifications' },
   { icon: Upload, label: 'Import Excel', path: '/import' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
 export const Sidebar: React.FC = () => {
   const { profile } = useAuth();
+  const { settings } = useSettings();
   
   const handleLogout = () => {
     signOut(auth);
@@ -36,11 +37,19 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 h-screen glass-dark text-white flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center font-bold text-xl">
+          {settings?.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
+          ) : (
+            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-lg" onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement?.querySelector('.logo-placeholder')?.classList.remove('hidden');
+            }} />
+          )}
+          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center font-bold text-xl logo-placeholder hidden">
             M99
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">Mitra Finance</h1>
+            <h1 className="font-bold text-lg leading-tight truncate w-32">Mitra Finance 99</h1>
             <p className="text-xs text-white/50">Digital System</p>
           </div>
         </div>

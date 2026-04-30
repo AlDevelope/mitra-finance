@@ -26,7 +26,7 @@ export const LoginPage: React.FC = () => {
     const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
     if (!profileSnap.exists()) {
       await setDoc(doc(db, 'profiles', user.uid), {
-        full_name: user.displayName || 'Admin Mitra Finance',
+        full_name: user.displayName || 'Admin Mitra Finance 99',
         role: Role.ADMIN, // Default to admin for first login in this demo
         created_at: new Date().toISOString()
       });
@@ -119,8 +119,14 @@ export const LoginPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="glass w-full max-w-[420px] p-8 rounded-[40px] shadow-glass flex flex-col items-center"
       >
-        <div className="w-20 h-20 bg-accent rounded-3xl flex items-center justify-center mb-6 shadow-lg rotate-3">
-          <Building2 className="w-10 h-10 text-white -rotate-3" />
+        <div className="mb-6 relative">
+          <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain rounded-3xl shadow-lg rotate-3" onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+            (e.target as HTMLImageElement).parentElement?.querySelector('.login-logo-placeholder')?.classList.remove('hidden');
+          }} />
+          <div className="w-20 h-20 bg-accent rounded-3xl flex items-center justify-center shadow-lg rotate-3 login-logo-placeholder hidden">
+            <Building2 className="w-10 h-10 text-white -rotate-3" />
+          </div>
         </div>
         
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1 transition-colors">Mitra Finance 99</h1>

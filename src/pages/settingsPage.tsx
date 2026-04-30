@@ -1,16 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck } from 'lucide-react';
+import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck, Image as ImageIcon, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { useSettings } from '../hooks/useSettings';
 
 export const SettingsPage: React.FC = () => {
+  const { settings, updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [showResetNasabahModal, setShowResetNasabahModal] = useState(false);
+  const [showResetKeuanganModal, setShowResetKeuanganModal] = useState(false);
   const navigate = useNavigate();
 
-  const handleResetNasabah = async () => {
-    if (!window.confirm('PERINGATAN: Anda akan menghapus SEMUA data nasabah dan riwayat pembayarannya. Tindakan ini tidak dapat dibatalkan. Lanjutkan?')) return;
+  useEffect(() => {
+    if (settings?.logo_url) {
+      setLogoUrl(settings.logo_url);
+    }
+  }, [settings]);
+
+  const handleUpdateBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settings) return;
     
+    setLoading(true);
+    const success = await updateSettings({
+      ...settings,
+      logo_url: logoUrl
+    });
+    
+    if (success) {
+      alert('Logo berhasil diperbarui!');
+    } else {
+      alert('Gagal memperbarui logo.');
+    }
+    setLoading(false);
+  };
+
+  const handleResetNasabah = async () => {
     setLoading(true);
     try {
       const snap = await getDocs(collection(db, 'nasabah'));
@@ -35,8 +63,6 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetKeuangan = async () => {
-    if (!window.confirm('Reset data ringkasan keuangan menjadi nol?')) return;
-    
     setLoading(true);
     try {
       await updateDoc(doc(db, 'keuangan', 'summary'), {
@@ -67,6 +93,48 @@ export const SettingsPage: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <section className="glass p-8 rounded-[40px]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-accent/10 text-accent rounded-2xl">
+              <ImageIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Identitas Visual</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Branding Perusahaan</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateBranding} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Logo URL</label>
+              <input 
+                type="url" 
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="https://example.com/logo.png"
+                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-primary outline-none transition-all"
+              />
+              <p className="text-[10px] text-gray-400 italic px-1">Masukkan URL gambar logo (sebaiknya format PNG/SVG transparan).</p>
+            </div>
+
+            {logoUrl && (
+              <div className="p-4 bg-gray-50 rounded-2xl flex flex-col items-center justify-center space-y-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Preview Logo</p>
+                <img src={logoUrl} alt="Logo Preview" className="h-16 object-contain" />
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+            >
+              <Save className="w-5 h-5" />
+              Simpan Branding
+            </button>
+          </form>
+        </section>
+
         <section className="glass p-8 rounded-[40px] border-2 border-red-50/50">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-red-100 text-red-600 rounded-2xl">
@@ -88,7 +156,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
               <button 
-                onClick={handleResetNasabah}
+                onClick={() => setShowResetNasabahModal(true)}
                 disabled={loading}
                 className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all active:scale-95 disabled:opacity-50"
               >
@@ -105,7 +173,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
               <button 
-                onClick={handleResetKeuangan}
+                onClick={() => setShowResetKeuanganModal(true)}
                 disabled={loading}
                 className="w-full mt-4 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50"
               >
@@ -114,6 +182,22 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        <AdminConfirmModal
+          isOpen={showResetNasabahModal}
+          onClose={() => setShowResetNasabahModal(false)}
+          onConfirm={handleResetNasabah}
+          title="Reset Semua Nasabah"
+          message="PERINGATAN: Anda akan menghapus SEMUA data nasabah dan riwayat pembayarannya. Tindakan ini tidak dapat dibatalkan."
+        />
+
+        <AdminConfirmModal
+          isOpen={showResetKeuanganModal}
+          onClose={() => setShowResetKeuanganModal(false)}
+          onConfirm={handleResetKeuangan}
+          title="Reset Data Keuangan"
+          message="Apakah Anda yakin ingin mengembalikan semua saldo keuangan menjadi Rp 0? Ini akan mengubah angka di dashboard utama."
+        />
 
         <section className="glass p-8 rounded-[40px]">
           <div className="flex items-center gap-3 mb-6">

@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { ArrowLeft, Upload, FileBarChart, CheckCircle, AlertCircle, RefreshCcw, Save } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { NasabahStatus, Role } from '../types';
-import { formatRupiah } from '../lib/formulas';
+import { formatRupiah, formatDateToISO, excelSerialToDate } from '../lib/formulas';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -116,7 +116,7 @@ export const ImportPage: React.FC = () => {
 
                      nasabah.history.push({
                         angsuran_ke: Number(angsuranNo),
-                        tanggal_bayar: String(dateVal || ''),
+                        tanggal_bayar: typeof dateVal === 'number' ? formatDateToISO(excelSerialToDate(dateVal)) : String(dateVal || ''),
                         jumlah_bayar: cleanImportNumber(rpVal),
                         keterangan: String(ketVal || '')
                      });

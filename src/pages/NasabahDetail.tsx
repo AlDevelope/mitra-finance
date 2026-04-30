@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   doc, 
-  getDoc, 
   collection, 
   onSnapshot, 
   query, 
@@ -10,28 +9,17 @@ import {
   addDoc, 
   updateDoc, 
   serverTimestamp,
-  deleteDoc,
-  increment
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Nasabah, Angsuran, NasabahStatus } from '../types';
-import { formatRupiah, generateWhatsAppMessage } from '../lib/formulas';
-import { 
-  ArrowLeft, 
-  MessageCircle, 
-  Share2, 
-  Edit, 
-  Trash2, 
-  CheckCircle2, 
-  Plus, 
-  Calendar,
-  Wallet,
-  Clock,
-  History
-} from 'lucide-react';
+import { Nasabah, Angsuran, NasabahStatus, NotificationType } from '../types';
+import { formatRupiah, generateWhatsAppMessage, formatDisplayDate } from '../lib/formulas';
+import { ArrowLeft, MessageCircle, Share2, Edit, Trash2, CheckCircle2, Plus, Calendar, Wallet, Clock, History, Camera, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { NasabahShareCard } from '../components/NasabahShareCard';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
 
 export const NasabahDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,7 +28,8 @@ export const NasabahDetail: React.FC = () => {
   const [nasabah, setNasabah] = useState<Nasabah | null>(null);
   const [history, setHistory] = useState<Angsuran[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPayForm, setShowPayForm] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Payment Form State
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
@@ -54,8 +43,13 @@ export const NasabahDetail: React.FC = () => {
       if (doc.exists()) {
         setNasabah({ id: doc.id, ...doc.data() } as Nasabah);
       } else {
-        navigate('/nasabah');
+        // If not found, it might have been auto-deleted on lunas
+        // We'll let the user navigate back if they were looking at it
+         if (!loading) navigate('/nasabah');
       }
+    }, (err) => {
+       console.error("Nasabah detail error:", err);
+       setLoading(false);
     });
 
     const historyUnsub = onSnapshot(
@@ -70,16 +64,20 @@ export const NasabahDetail: React.FC = () => {
       nasabahUnsub();
       historyUnsub();
     };
-  }, [id, navigate]);
+  }, [id, navigate, loading]);
 
-  const handleFirestoreError = (error: unknown, operationType: string, path: string | null) => {
-    const errInfo = {
-      error: error instanceof Error ? error.message : String(error),
-      operationType,
-      path
-    };
-    console.error('Firestore Error: ', JSON.stringify(errInfo));
-    return errInfo.error;
+  const createNotification = async (title: string, message: string, type: NotificationType) => {
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        title,
+        message,
+        type,
+        is_read: false,
+        created_at: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Failed to create notification:', err);
+    }
   };
 
   const handlePayment = async (e: React.FormEvent) => {
@@ -103,37 +101,46 @@ export const NasabahDetail: React.FC = () => {
       });
 
       // 2. Update nasabah document
-      await updateDoc(doc(db, 'nasabah', id), {
-        angsuran_terbayar: nextAngsuran,
-        sisa_angsuran: sisa,
-        sisa_hutang: sisa * nasabah.rp_per_angsuran,
-        progress_persen: Math.round((nextAngsuran / nasabah.jumlah_angsuran) * 100),
-        status: sisa === 0 ? NasabahStatus.LUNAS : NasabahStatus.AKTIF,
-        updated_at: serverTimestamp()
-      });
-
-      setShowPayForm(false);
-      setPayNote('');
-    } catch (error) {
-      const msg = handleFirestoreError(error, 'WRITE', `nasabah/${id}`);
-      alert(`Gagal mencatat pembayaran: ${msg}`);
+      if (sisa === 0) {
+        // AUTO DELETE LUNAS
+        await createNotification(
+          'Nasabah Telah Lunas!',
+          `Nasabah ${nasabah.nama} untuk barang ${nasabah.barang} telah menyelesaikan seluruh angsuran dan telah dihapus otomatis dari sistem.`,
+          NotificationType.SUCCESS
+        );
+        await deleteDoc(doc(db, 'nasabah', id));
+        alert('Nasabah telah lunas dan dihapus otomatis dari sistem.');
+        navigate('/nasabah');
+      } else {
+        await updateDoc(doc(db, 'nasabah', id), {
+          angsuran_terbayar: nextAngsuran,
+          sisa_angsuran: sisa,
+          sisa_hutang: sisa * nasabah.rp_per_angsuran,
+          progress_persen: Math.round((nextAngsuran / nasabah.jumlah_angsuran) * 100),
+          status: NasabahStatus.AKTIF,
+          updated_at: serverTimestamp()
+        });
+        setPayNote('');
+      }
+    } catch (error: any) {
+      alert(`Gagal mencatat pembayaran: ${error.message}`);
     } finally {
       setPayLoading(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!id || !window.confirm('Hapus nasabah ini beserta seluruh riwayatnya?')) return;
+  const confirmDelete = async () => {
+    if (!id) return;
     try {
       await deleteDoc(doc(db, 'nasabah', id));
       navigate('/nasabah');
-    } catch (err) {
-      const msg = handleFirestoreError(err, 'DELETE', `nasabah/${id}`);
-      alert(`Gagal menghapus nasabah: ${msg}`);
+    } catch (err: any) {
+      alert(`Gagal menghapus nasabah: ${err.message}`);
     }
   };
 
-  if (loading || !nasabah) return <div className="p-8 text-center font-bold text-gray-400">Memuat detail nasabah...</div>;
+  if (loading) return <div className="p-8 text-center font-bold text-gray-400">Memuat detail nasabah...</div>;
+  if (!nasabah) return <div className="p-8 text-center font-bold text-gray-400">Nasabah tidak ditemukan (mungkin sudah lunas/dihapus)</div>;
 
   return (
     <div className="space-y-6 pb-20">
@@ -147,7 +154,17 @@ export const NasabahDetail: React.FC = () => {
         <div className="flex gap-2">
            {isAdmin && (
              <>
-               <button onClick={handleDelete} className="w-10 h-10 bg-white border border-gray-100 text-danger rounded-xl flex items-center justify-center hover:bg-danger/5 transition-all">
+               <button 
+                 onClick={() => setShowShareCard(true)}
+                 className="px-4 h-10 bg-accent text-white rounded-xl flex items-center justify-center gap-2 hover:bg-accent/90 transition-all font-bold text-xs"
+               >
+                 <Camera className="w-4 h-4" />
+                 Bagikan Status
+               </button>
+               <button 
+                 onClick={() => setShowDeleteModal(true)} 
+                 className="w-10 h-10 bg-white border border-gray-100 text-danger rounded-xl flex items-center justify-center hover:bg-danger/5 transition-all"
+               >
                  <Trash2 className="w-5 h-5" />
                </button>
                <Link to={`/nasabah/${id}/edit`} className="w-10 h-10 bg-white border border-gray-100 text-primary rounded-xl flex items-center justify-center hover:bg-primary/5 transition-all">
@@ -157,6 +174,16 @@ export const NasabahDetail: React.FC = () => {
            )}
         </div>
       </header>
+
+      {nasabah && (
+        <AdminConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={confirmDelete}
+          title="Hapus Nasabah"
+          message={`Apakah Anda yakin ingin menghapus nasabah ${nasabah.nama}? Seluruh data riwayat pembayaran akan ikut terhapus selamanya.`}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -189,16 +216,16 @@ export const NasabahDetail: React.FC = () => {
                    >
                      <MessageCircle className="w-4 h-4" /> WhatsApp
                    </a>
-                   <button 
-                     onClick={() => {
-                        const link = `${window.location.origin}/portal/${id}`;
+                  <button 
+                    onClick={() => {
+                        const link = `${window.location.origin}/portal/${id}?preview=true`;
                         navigator.clipboard.writeText(link);
                         alert('Link portal disalin ke clipboard!');
-                     }}
-                     className="bg-white border border-gray-100 text-gray-500 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all"
-                   >
-                     <Share2 className="w-4 h-4" /> Share Link
-                   </button>
+                    }}
+                    className="bg-white border border-gray-100 text-gray-500 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all font-bold"
+                  >
+                    <Share2 className="w-4 h-4" /> Share Link
+                  </button>
                    <Link 
                      to={`/portal/${id}`}
                      target="_blank"
@@ -228,8 +255,8 @@ export const NasabahDetail: React.FC = () => {
                 <p className="font-bold text-accent">{formatRupiah(nasabah.sisa_hutang)}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Minggu</p>
-                <p className="font-bold text-gray-700">{nasabah.jumlah_angsuran} <span className="text-[10px] text-gray-400 uppercase">Weeks</span></p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total MGU</p>
+                <p className="font-bold text-gray-700">{nasabah.jumlah_angsuran} <span className="text-[10px] text-gray-400 uppercase">MGU</span></p>
               </div>
             </div>
           </section>
@@ -286,7 +313,7 @@ export const NasabahDetail: React.FC = () => {
                   <tr className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
                     <th className="pb-4">No</th>
                     <th className="pb-4">Tanggal</th>
-                    <th className="pb-4">Minggu Ke</th>
+                    <th className="pb-4">MGU Ke</th>
                     <th className="pb-4">Jumlah</th>
                     <th className="pb-4">Status</th>
                   </tr>
@@ -295,8 +322,8 @@ export const NasabahDetail: React.FC = () => {
                   {history.map((record, i) => (
                     <tr key={record.id} className="text-sm font-medium text-gray-700">
                       <td className="py-4">{history.length - i}</td>
-                      <td className="py-4">{record.tanggal_bayar}</td>
-                      <td className="py-4">Minggu {record.angsuran_ke}</td>
+                      <td className="py-4">{formatDisplayDate(record.tanggal_bayar)}</td>
+                      <td className="py-4">MGU {record.angsuran_ke}</td>
                       <td className="py-4 font-bold text-primary">{formatRupiah(record.jumlah_bayar)}</td>
                       <td className="py-4">
                         <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-full uppercase">VERIFIED</span>
@@ -328,7 +355,7 @@ export const NasabahDetail: React.FC = () => {
             <div className="mt-8 flex justify-between items-end">
               <div>
                 <p className="text-xs text-white/50 uppercase tracking-widest font-bold">Sisa Angsuran</p>
-                <p className="text-xl font-bold">{nasabah.sisa_angsuran} <span className="text-xs text-white/40">Minggu</span></p>
+                <p className="text-xl font-bold">{nasabah.sisa_angsuran} <span className="text-xs text-white/40">MGU</span></p>
               </div>
               <div className="bg-white/10 p-2 rounded-xl">
                  <Clock className="w-6 h-6 text-accent" />
@@ -362,7 +389,7 @@ export const NasabahDetail: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Jumlah Bayar</label>
                   <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">Minggu ke-{nasabah.angsuran_terbayar + 1}</p>
+                    <p className="text-xs text-gray-400 font-bold uppercase mb-1">MGU ke-{nasabah.angsuran_terbayar + 1}</p>
                     <p className="text-xl font-bold text-primary">{formatRupiah(nasabah.rp_per_angsuran)}</p>
                   </div>
                 </div>
@@ -396,9 +423,16 @@ export const NasabahDetail: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {showShareCard && nasabah && (
+        <NasabahShareCard 
+          nasabah={nasabah} 
+          history={history}
+          onClose={() => setShowShareCard(false)} 
+        />
+      )}
     </div>
   );
 };
 
-function TrendingUp({ className }: { className?: string }) { return <TrendingUpIcon className={className} />; }
-import { TrendingUp as TrendingUpIcon } from 'lucide-react';
+export default NasabahDetail;

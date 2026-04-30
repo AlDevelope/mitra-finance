@@ -11,6 +11,7 @@ import { KeuanganPage } from './pages/KeuanganPage';
 import { ImportPage } from './pages/ImportPage';
 import { TagihanPage } from './pages/TagihanPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/nasabah/:id/edit" element={<EditNasabah />} />
             <Route path="/keuangan" element={<KeuanganPage />} />
             <Route path="/import" element={<ImportPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 

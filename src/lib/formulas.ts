@@ -23,8 +23,40 @@ export const formatRupiah = (amount: number): string => {
 
 export const excelSerialToDate = (serial: number): Date => {
   // Excel serial date: 1 Jan 1900 = 1. Unix timestamp 0 is 25569 days after 1 Jan 1900.
-  const date = new Date((serial - 25569) * 86400 * 1000);
+  const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
   return date;
+};
+
+export const formatDisplayDate = (dateVal: any): string => {
+  if (!dateVal) return '-';
+  
+  let date: Date;
+  
+  if (dateVal instanceof Date) {
+    date = dateVal;
+  } else if (typeof dateVal === 'number') {
+    date = excelSerialToDate(dateVal);
+  } else if (typeof dateVal === 'string') {
+    // Check if it's a numeric string (excel serial)
+    if (!isNaN(Number(dateVal)) && !dateVal.includes('-')) {
+      date = excelSerialToDate(Number(dateVal));
+    } else {
+      date = new Date(dateVal);
+    }
+  } else if (dateVal?.toDate && typeof dateVal.toDate === 'function') {
+    // Firestore Timestamp
+    date = dateVal.toDate();
+  } else {
+    return '-';
+  }
+
+  if (isNaN(date.getTime())) return String(dateVal);
+
+  const d = date.getDate().toString().padStart(2, '0');
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const y = date.getFullYear();
+  
+  return `${d}/${m}/${y}`;
 };
 
 export const formatDateToISO = (date: Date): string => {
@@ -78,6 +110,6 @@ export const generateNasabahPaymentMessage = (nasabah: Nasabah) => {
     `Mohon infonya untuk proses pembayaran. Terima kasih!`
   );
   // Using a fixed admin number for now - in production this would be in env or database
-  const adminPhone = '+62895412697000'; 
+  const adminPhone = '628123456789'; 
   return `https://wa.me/${adminPhone}?text=${message}`;
 };

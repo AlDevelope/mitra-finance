@@ -166,8 +166,8 @@ export const NasabahPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-50">
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sisa Minggu</p>
-                    <p className="font-bold text-gray-700">{nasabah.sisa_angsuran} <span className="text-[10px] text-gray-400">Minggu</span></p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sisa MGU</p>
+                    <p className="font-bold text-gray-700">{nasabah.sisa_angsuran} <span className="text-[10px] text-gray-400">MGU</span></p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sisa Hutang</p>
@@ -228,7 +228,7 @@ export const NasabahPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-5">
                     <p className="text-sm font-bold">{nasabah.angsuran_terbayar} / {nasabah.jumlah_angsuran}</p>
-                    <p className="text-[10px] text-gray-400">Sisa {nasabah.sisa_angsuran} minggu</p>
+                    <p className="text-[10px] text-gray-400">Sisa {nasabah.sisa_angsuran} MGU</p>
                   </td>
                   <td className="px-6 py-5 text-sm font-bold text-danger">{formatRupiah(nasabah.sisa_hutang)}</td>
                   <td className="px-6 py-5">
