@@ -14,7 +14,7 @@ import { motion } from 'motion/react';
 import { Role } from '../types';
 import { seedDatabase } from '../lib/seed';
 
-export const LoginPage: React.FC = () => {
+const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -199,3 +199,5 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+
+export default LoginPage;

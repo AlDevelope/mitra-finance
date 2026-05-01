@@ -10,9 +10,10 @@ interface NasabahShareCardProps {
   nasabah: Nasabah;
   history?: Angsuran[];
   onClose: () => void;
+  isLunas?: boolean;
 }
 
-export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, history = [], onClose }) => {
+export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, history = [], onClose, isLunas = false }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   
@@ -28,8 +29,11 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
     checkTheme();
   }, []);
 
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
   const shareToWA = async () => {
     if (cardRef.current === null) return;
+    setIsProcessing(true);
     
     try {
       const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
@@ -39,7 +43,9 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
       const blob = await res.blob();
       const file = new File([blob], `Status-${nasabah.nama}.png`, { type: 'image/png' });
 
-      const text = `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.`;
+      const text = isLunas 
+        ? `Selamat ${nasabah.nama}! Angsuran ${nasabah.barang} Anda di Mitra Finance 99 telah LUNAS TOTAL. Berikut sertifikat pelunasannya.`
+        : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.`;
 
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -63,6 +69,8 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
     } catch (err) {
       console.error('Failed to share/generate image', err);
       alert('Gagal memproses gambar untuk dibagikan.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -90,18 +98,18 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
   const offset = circumference - (lunasPercentage / 100) * circumference;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Preview Header */}
-        <div className="p-5 border-b flex justify-between items-center bg-gray-50 shrink-0">
+        <div className="p-5 border-b dark:border-white/5 flex justify-between items-center bg-gray-50 dark:bg-slate-800 shrink-0">
           <div>
-            <h3 className="font-black text-gray-900 tracking-tight">Status Cicilan</h3>
+            <h3 className="font-black text-gray-900 dark:text-white tracking-tight">Status Cicilan</h3>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Preview Gambar Bagikan</p>
           </div>
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }} 
-            className="w-10 h-10 flex items-center justify-center hover:bg-gray-200 rounded-full transition-all text-gray-400 hover:text-danger active:scale-90"
+            className="w-10 h-10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-all text-gray-400 hover:text-danger active:scale-90"
           >
             <XIcon className="w-6 h-6" />
           </button>
@@ -110,7 +118,69 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
         {/* Scrollable Container for Preview */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-200/50">
           {/* The Card to Capture */}
-          <div ref={cardRef} className={`${isDarkMode ? 'bg-[#0A1628]' : 'bg-white'} p-10 ${isDarkMode ? 'text-white' : 'text-gray-900'} w-[450px] mx-auto rounded-[48px] flex flex-col relative overflow-hidden shadow-2xl`}>
+          {isLunas ? (
+            /* LUNAS CELEBRATORY CARD */
+            <div ref={cardRef} className="bg-white p-12 text-gray-900 w-[500px] mx-auto rounded-[60px] flex flex-col relative overflow-hidden shadow-2xl border-[12px] border-primary/5">
+               {/* Pattern Background */}
+               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#C49B48 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+               
+               {/* Gold Accents */}
+               <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[80px]" />
+               <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-[80px]" />
+
+               {/* Certificate Header */}
+               <div className="text-center mb-10 relative z-10">
+                  <div className="flex justify-center mb-6">
+                    <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center shadow-xl shadow-primary/30">
+                       <CheckCircle2 className="w-12 h-12 text-white" />
+                    </div>
+                  </div>
+                  <h1 className="text-sm font-black text-primary tracking-[0.4em] uppercase mb-2">Mitra Finance 99</h1>
+                  <h2 className="text-4xl font-black text-gray-900 tracking-tight leading-tight uppercase">Sertifikat Pelunasan</h2>
+                  <div className="w-32 h-1 bg-accent mx-auto mt-4 rounded-full" />
+               </div>
+
+               <div className="text-center mb-10 relative z-10 space-y-4">
+                  <p className="text-sm font-medium text-gray-500 italic">Diberikan dengan bangga kepada:</p>
+                  <h3 className="text-5xl font-black text-primary tracking-tighter">{nasabah.nama}</h3>
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Objek Pembiayaan</p>
+                    <p className="text-xl font-bold text-gray-800">{nasabah.barang}</p>
+                  </div>
+               </div>
+
+               <div className="bg-gray-50 p-8 rounded-[40px] mb-10 relative z-10 border border-gray-100 text-center">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Status Akhir</p>
+                  <div className="inline-flex items-center gap-4 bg-green-500 text-white px-8 py-4 rounded-full shadow-lg shadow-green-500/20">
+                     <span className="text-2xl font-black uppercase tracking-widest">LUNAS TOTAL</span>
+                  </div>
+                  <div className="mt-8 grid grid-cols-2 gap-4">
+                     <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Angsuran</p>
+                        <p className="text-xl font-black text-gray-800">{nasabah.jumlah_angsuran} Minggu</p>
+                     </div>
+                     <div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sisa Hutang</p>
+                        <p className="text-xl font-black text-green-600">Rp 0</p>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Stamp/Footer */}
+               <div className="flex justify-between items-center relative z-10 px-4">
+                  <div className="text-left">
+                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none">Dokumen Sah</p>
+                     <p className="text-[10px] font-black text-primary mt-2">ADMIN MITRA FINANCE 99</p>
+                  </div>
+                  {/* Decorative Confirmed Stamp */}
+                  <div className="transform rotate-[-15deg] border-4 border-accent text-accent px-4 py-2 rounded-xl font-black text-xl uppercase tracking-tighter shadow-sm opacity-60">
+                     CONFIRMED
+                  </div>
+               </div>
+            </div>
+          ) : (
+            /* NORMAL STATUS CARD */
+            <div ref={cardRef} className={`${isDarkMode ? 'bg-[#0A1628]' : 'bg-white'} p-10 ${isDarkMode ? 'text-white' : 'text-gray-900'} w-[450px] mx-auto rounded-[48px] flex flex-col relative overflow-hidden shadow-2xl`}>
             {/* Subtle Background Elements */}
             <div className={`absolute top-[-50px] right-[-100px] w-80 h-80 ${isDarkMode ? 'bg-primary/10' : 'bg-primary/5'} rounded-full blur-[100px]`} />
             <div className={`absolute bottom-[-50px] left-[-100px] w-80 h-80 ${isDarkMode ? 'bg-accent/10' : 'bg-accent/5'} rounded-full blur-[100px]`} />
@@ -253,20 +323,22 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
               <p className={`text-[8px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-2 uppercase tracking-[0.4em]`}>Official Digital Statement</p>
             </div>
           </div>
+        )}
         </div>
 
         {/* Action Buttons */}
-        <div className="p-8 bg-white border-t shrink-0 flex flex-col gap-3">
+        <div className="p-8 bg-white dark:bg-slate-900 border-t dark:border-white/5 shrink-0 flex flex-col gap-3">
           <button 
+            disabled={isProcessing}
             onClick={shareToWA}
-            className="w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl shadow-green-500/30"
+            className="w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-green-500/30 disabled:opacity-50"
           >
             <MessageCircle className="w-6 h-6" />
-            Bagikan ke WhatsApp
+            {isProcessing ? 'Memproses Gambar...' : 'Bagikan ke WhatsApp'}
           </button>
           <button 
             onClick={downloadImage}
-            className="w-full bg-gray-100 text-gray-500 py-4 rounded-[20px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
+            className="w-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 py-4 rounded-[20px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
           >
             <Share2 className="w-4 h-4" />
             Simpan Gambar ke Galeri

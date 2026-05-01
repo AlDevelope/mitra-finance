@@ -9,7 +9,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
 
-export const NasabahPage: React.FC = () => {
+const NasabahPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const { data: nasabahList, loading } = useNasabah();
   const [view, setView] = useState<'grid' | 'list'>('grid');
@@ -260,3 +260,5 @@ export const NasabahPage: React.FC = () => {
     </div>
   );
 };
+
+export default NasabahPage;

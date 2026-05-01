@@ -24,14 +24,18 @@ const menuItems = [
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
   { icon: Home, label: 'Kosanku', path: '/kosanku' },
-  { icon: History, label: 'Angsuran Log', path: '/angsuran-log' },
+  { icon: History, label: 'Angsuran', path: '/angsuran' },
   { icon: Calculator, label: 'Simulasi', path: '/simulasi' },
   { icon: Bell, label: 'Pemberitahuan', path: '/notifications' },
   { icon: Upload, label: 'Import Excel', path: '/import' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onClose: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { profile } = useAuth();
   const { settings } = useSettings();
   
@@ -80,14 +84,14 @@ export const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      <div className="p-6 border-t border-white/10">
+      <div className="p-6 border-t border-white/10 shrink-0">
         <div className="mb-4">
           <p className="text-xs text-white/50 mb-1">Signed in as</p>
           <p className="font-medium truncate">{profile?.full_name || 'Admin'}</p>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 text-danger hover:bg-danger/10 rounded-xl transition-colors font-medium"
+          className="flex items-center gap-3 w-full px-4 py-3 text-danger hover:bg-danger/10 rounded-xl transition-colors font-medium border border-transparent hover:border-danger/20"
         >
           <LogOut className="w-5 h-5" />
           <span>Logout</span>

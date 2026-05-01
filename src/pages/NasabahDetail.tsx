@@ -21,7 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { NasabahShareCard } from '../components/NasabahShareCard';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 
-export const NasabahDetail: React.FC = () => {
+const NasabahDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -29,6 +29,7 @@ export const NasabahDetail: React.FC = () => {
   const [history, setHistory] = useState<Angsuran[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [showLunasModal, setShowLunasModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Payment Form State
@@ -103,15 +104,7 @@ export const NasabahDetail: React.FC = () => {
 
       // 2. Update nasabah document
       if (sisa === 0) {
-        // AUTO DELETE LUNAS
-        await createNotification(
-          'Nasabah Telah Lunas!',
-          `Nasabah ${nasabah.nama} untuk barang ${nasabah.barang} telah menyelesaikan seluruh angsuran dan telah dihapus otomatis dari sistem.`,
-          NotificationType.SUCCESS
-        );
-        await deleteDoc(doc(db, 'nasabah', id));
-        alert('Nasabah telah lunas dan dihapus otomatis dari sistem.');
-        navigate('/nasabah');
+        setShowLunasModal(true);
       } else {
         await updateDoc(doc(db, 'nasabah', id), {
           angsuran_terbayar: nextAngsuran,
@@ -130,8 +123,41 @@ export const NasabahDetail: React.FC = () => {
     }
   };
 
+  const handleFinalizeLunas = async () => {
+    if (!nasabah || !id) return;
+    setPayLoading(true);
+    try {
+      // 1. Send notification
+      await createNotification(
+        'Nasabah Telah Lunas!',
+        `Nasabah ${nasabah.nama} untuk barang ${nasabah.barang} telah menyelesaikan seluruh angsuran.`,
+        NotificationType.SUCCESS
+      );
+      
+      // 2. Hide modal first
+      setShowLunasModal(false);
+      
+      // 3. Navigate away FIRST before deleting to avoid listener conflicts
+      // We use a small timeout to let the navigation settle
+      navigate('/nasabah', { replace: true });
+      
+      setTimeout(async () => {
+        try {
+          await deleteDoc(doc(db, 'nasabah', id));
+        } catch (delErr) {
+          console.error("Delayed delete error:", delErr);
+        }
+      }, 500);
+
+    } catch (err: any) {
+      console.error("Lunas final error:", err);
+      alert(`Gagal menyelesaikan pelunasan: ${err.message}`);
+      setPayLoading(false);
+    }
+  };
+
   const confirmDelete = async () => {
-    if (!id) return;
+    if (!id || !nasabah) return;
     try {
       await deleteDoc(doc(db, 'nasabah', id));
       navigate('/nasabah');
@@ -452,11 +478,51 @@ export const NasabahDetail: React.FC = () => {
         </div>
       </div>
 
+      {showLunasModal && nasabah && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+           <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-slate-900 rounded-[40px] p-10 max-w-md w-full text-center relative overflow-hidden shadow-2xl"
+           >
+              {/* Confetti-like decor */}
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-accent to-success" />
+              
+              <div className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <CheckCircle2 className="w-12 h-12 text-success" />
+              </div>
+              
+              <h2 className="text-3xl font-black text-primary dark:text-sky-400 mb-2">SELAMAT!</h2>
+              <p className="text-gray-500 dark:text-gray-400 font-medium mb-8">
+                Nasabah <span className="font-bold text-gray-900 dark:text-white">{nasabah.nama}</span> telah melunasi seluruh angsuran untuk <span className="font-bold text-gray-900 dark:text-white">{nasabah.barang}</span>.
+              </p>
+              
+              <div className="space-y-4">
+                 <button 
+                  onClick={() => setShowShareCard(true)}
+                  className="w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:scale-[1.02] transition-all"
+                 >
+                   <Share2 className="w-6 h-6" /> Bagikan Bukti Lunas
+                 </button>
+                 <button 
+                  onClick={handleFinalizeLunas}
+                  className="w-full bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 py-4 rounded-[24px] font-bold hover:bg-gray-200 transition-all"
+                 >
+                   Hanya Selesai & Hapus Data
+                 </button>
+              </div>
+           </motion.div>
+        </div>
+      )}
+
       {showShareCard && nasabah && (
         <NasabahShareCard 
           nasabah={nasabah} 
           history={history}
-          onClose={() => setShowShareCard(false)} 
+          isLunas={nasabah.sisa_angsuran === 0 || (nasabah.angsuran_terbayar + 1 === nasabah.jumlah_angsuran)}
+          onClose={() => {
+            setShowShareCard(false);
+          }} 
         />
       )}
     </div>

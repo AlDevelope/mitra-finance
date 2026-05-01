@@ -13,6 +13,50 @@ export const hitungProgress = (angsuranTerbayar: number, totalAngsuran: number) 
   return Math.round((angsuranTerbayar / totalAngsuran) * 100);
 };
 
+export const parseExcelValue = (val: any): number => {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  // Remove currency symbols, commas, and dots but handle Indonesian format where . is thousand and , is decimal potentially
+  // For simplicity, we remove everything set except digits and minus
+  const cleaned = String(val).replace(/[^0-9-]/g, '');
+  return parseInt(cleaned) || 0;
+};
+
+export const parseExcelDate = (val: any): string => {
+  // Excel date serial number handling
+  if (typeof val === 'number') {
+    const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return date.toISOString().split('T')[0];
+  }
+  if (!val) return new Date().toISOString().split('T')[0];
+  
+  const str = String(val).trim();
+  
+  // Handle DD/MM/YYYY format
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      const d = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  // Handle DD-MM-YYYY format
+  if (str.includes('-') && str.split('-')[0].length <= 2) {
+    const parts = str.split('-');
+    if (parts.length === 3) {
+      const d = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  return str;
+};
+
 export const formatRupiah = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',

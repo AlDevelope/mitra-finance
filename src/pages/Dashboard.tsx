@@ -33,7 +33,7 @@ import {
 } from 'recharts';
 import { cn } from '../lib/utils';
 
-export const Dashboard: React.FC = () => {
+const Dashboard: React.FC = () => {
   const { data: keuangan, loading: keuanganLoading, error: keuanganError } = useKeuangan();
   const { settings } = useSettings();
   const [totalNasabah, setTotalNasabah] = useState(0);
@@ -42,9 +42,10 @@ export const Dashboard: React.FC = () => {
   const [totalSisaHutang, setTotalSisaHutang] = useState(0);
   const [nasabahError, setNasabahError] = useState<string | null>(null);
   
+
   const labels = {
-    uang_tanah_lama: settings?.category_labels.uang_tanah_lama || 'Tanah Lama',
-    uang_tanah_baru: settings?.category_labels.uang_tanah_baru || 'Tanah Baru'
+    uang_tanah_lama: settings?.category_labels?.uang_tanah_lama || 'Tanah Lama',
+    uang_tanah_baru: settings?.category_labels?.uang_tanah_baru || 'Tanah Baru'
   };
 
   useEffect(() => {
@@ -170,24 +171,24 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-10">
-      <header className="flex justify-between items-center sm:items-end">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="relative">
             {settings?.logo_url ? (
-              <img src={settings.logo_url} alt="Logo" className="w-16 h-16 object-contain hidden md:block" />
+              <img src={settings.logo_url} alt="Logo" className="w-16 h-16 object-contain rounded-2xl" />
             ) : (
-              <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain hidden md:block" onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }} />
+              <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+                <Users className="w-8 h-8 text-white" />
+              </div>
             )}
           </div>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard Admin</h2>
-            <p className="text-gray-500 mt-1">Sistem Pemantauan Digital Mitra Finance 99</p>
+            <h2 className="text-3xl font-bold tracking-tight text-primary">Dashboard Admin</h2>
+            <p className="text-gray-500 mt-1 font-medium italic">Sistem Pemantauan Digital Mitra Finance 99</p>
           </div>
         </div>
         <div className="text-right hidden md:block">
-          <p className="text-primary font-bold italic">"Berkembang, Bertumbuh, Berinovasi"</p>
+           <p className="text-primary font-bold italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
       </header>
 
@@ -372,3 +373,5 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+export default Dashboard;

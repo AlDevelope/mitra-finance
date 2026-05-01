@@ -11,14 +11,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { KosanRecord } from '../types';
-import { formatRupiah } from '../lib/formulas';
+import { formatRupiah, parseExcelValue } from '../lib/formulas';
 import { Plus, Trash2, TrendingUp, Wallet, Home, Download, Edit2, Check, X as XIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
 
-export const KosankuPage: React.FC = () => {
+const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const { isAdmin } = useAuth();
   const [records, setRecords] = useState<KosanRecord[]>([]);
@@ -74,24 +74,38 @@ export const KosankuPage: React.FC = () => {
     }
   };
 
+  const [isImporting, setImporting] = useState(false);
+
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImporting(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames.find(n => n.toLowerCase().includes('kosan')) || wb.SheetNames[0];
+        const wsname = wb.SheetNames.find(n => n.toLowerCase().includes('kosan')) || 
+                       wb.SheetNames.find(n => n.toLowerCase().includes('pemasukan')) || 
+                       wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        
+        // Use range: 1 to start from Row 2 (the header row in screenshot)
+        const data = XLSX.utils.sheet_to_json(ws, { range: 1 });
 
+        let count = 0;
         for (const row of data as any[]) {
-          const bulan = row.Bulan || row.Month || '';
-          const masuk = Number(row.Masuk) || Number(row['Uang Masuk']) || 0;
-          const keluar = Number(row.Keluar) || Number(row['Uang Keluar']) || 0;
-          const keterangan = row.Keterangan || row.Ket || '';
+          const bulan = row.Bulan || row.bulan || row.Month || '';
+          
+          // Skip summary rows or empty rows
+          if (!bulan || String(bulan).toLowerCase().includes('jumlah') || String(bulan).toLowerCase().includes('modal') || String(bulan).toLowerCase().includes('sisa')) {
+            continue;
+          }
+
+          const masuk = parseExcelValue(row.Masuk || row.masuk || row['Uang Masuk'] || 0);
+          const keluar = parseExcelValue(row.Keluar || row.keluar || row['Uang Keluar'] || 0);
+          const keterangan = row.Keterangan || row.keterangan || row.Ket || 'Import';
 
           await addDoc(collection(db, 'kosanku'), {
             bulan: String(bulan),
@@ -100,11 +114,15 @@ export const KosankuPage: React.FC = () => {
             keterangan: String(keterangan),
             created_at: serverTimestamp()
           });
+          count++;
         }
-        alert('Import berhasil');
-      } catch (err) {
+        alert(`Berhasil impor ${count} data kosanku`);
+      } catch (err: any) {
         console.error('Import Error:', err);
-        alert('Gagal mengimpor file kosan');
+        alert('Gagal mengimpor file kosan: ' + err.message);
+      } finally {
+        setImporting(false);
+        if (e.target) e.target.value = '';
       }
     };
     reader.readAsBinaryString(file);
@@ -243,3 +261,5 @@ export const KosankuPage: React.FC = () => {
     </div>
   );
 };
+
+export default KosankuPage;

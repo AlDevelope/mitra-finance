@@ -5,7 +5,7 @@ import { db } from '../lib/firebase';
 import { ArrowLeft, User, Package, Wallet, Calendar, MessageCircle, FileText, Save, RefreshCcw } from 'lucide-react';
 import { formatRupiah } from '../lib/formulas';
 
-export const EditNasabah: React.FC = () => {
+const EditNasabah: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -165,3 +165,5 @@ export const EditNasabah: React.FC = () => {
     </div>
   );
 };
+
+export default EditNasabah;

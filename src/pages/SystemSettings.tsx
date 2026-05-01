@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useSettings } from '../hooks/useSettings';
 
-export const SystemSettings: React.FC = () => {
+const SystemSettings: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
@@ -238,3 +238,5 @@ export const SystemSettings: React.FC = () => {
     </div>
   );
 };
+
+export default SystemSettings;

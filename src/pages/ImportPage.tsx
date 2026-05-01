@@ -11,7 +11,7 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
-export const ImportPage: React.FC = () => {
+const ImportPage: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useAuth(); // Get profile here
   const [data, setData] = useState<any[]>([]);
@@ -383,3 +383,5 @@ export const ImportPage: React.FC = () => {
     </div>
   );
 };
+
+export default ImportPage;

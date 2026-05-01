@@ -11,12 +11,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { AngsuranLog } from '../types';
-import { formatRupiah, formatDisplayDate } from '../lib/formulas';
+import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
 import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 
-export const AngsuranLogPage: React.FC = () => {
+const AngsuranLogPage: React.FC = () => {
   const [logs, setLogs] = useState<AngsuranLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -72,29 +72,66 @@ export const AngsuranLogPage: React.FC = () => {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames.length > 1 ? wb.SheetNames[1] : wb.SheetNames[0];
+        const wsname = wb.SheetNames.find(n => n.toLowerCase().includes('angsuran')) || wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        
+        // Convert to array of arrays to handle snaked layout manually
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        
+        let count = 0;
+        // The screenshot shows data starts from row 4 (index 3)
+        // Group 1: Cols B(1), C(2), D(3), E(4)
+        // Group 2: Cols H(7), I(8), J(9), K(10)
+        
+        for (let i = 2; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row) continue;
 
-        for (const row of data as any[]) {
-          // Flexible column mapping
-          const tanggal = row.Tanggal || row.Tgl || row['Tgl No'] || new Date().toISOString().split('T')[0];
-          const keterangan = row.Keterangan || row.Ket || '';
-          const masuk = Number(row.Masuk) || Number(row['Uang Masuk']) || 0;
-          const keluar = Number(row.Keluar) || Number(row['Uang Keluar']) || 0;
+          // Parse Group 1
+          if (row[1] && row[1] !== 'TGL:NO' && !String(row[1]).includes('Keterangan')) { // If Date exists in col B and not a header
+            const tanggal = parseExcelDate(row[1]);
+            const keterangan = row[2] || '';
+            const masuk = parseExcelValue(row[3]);
+            const keluar = parseExcelValue(row[4]);
+            
+            if (keterangan && (masuk > 0 || keluar > 0) && !String(keterangan).toLowerCase().includes('keterangan')) {
+              await addDoc(collection(db, 'angsuran_logs'), {
+                tanggal,
+                keterangan: String(keterangan),
+                masuk,
+                keluar,
+                created_at: serverTimestamp()
+              });
+              count++;
+            }
+          }
 
-          await addDoc(collection(db, 'angsuran_logs'), {
-            tanggal: String(tanggal),
-            keterangan: String(keterangan),
-            masuk,
-            keluar,
-            created_at: serverTimestamp()
-          });
+          // Parse Group 2
+          if (row[7] && row[7] !== 'TGL:NO' && !String(row[7]).includes('Keterangan')) { // If Date exists in col H and not a header
+            const tanggal = parseExcelDate(row[7]);
+            const keterangan = row[8] || '';
+            const masuk = parseExcelValue(row[9]);
+            const keluar = parseExcelValue(row[10]);
+
+            if (keterangan && (masuk > 0 || keluar > 0) && !String(keterangan).toLowerCase().includes('keterangan')) {
+              await addDoc(collection(db, 'angsuran_logs'), {
+                tanggal,
+                keterangan: String(keterangan),
+                masuk,
+                keluar,
+                created_at: serverTimestamp()
+              });
+              count++;
+            }
+          }
         }
-        alert('Import berhasil');
-      } catch (err) {
+        
+        alert(`Berhasil impor ${count} data angsuran`);
+      } catch (err: any) {
         console.error('Import Error:', err);
-        alert('Gagal mengimpor file. Pastikan format kolom sesuai (Tanggal, Keterangan, Masuk, Keluar)');
+        alert('Gagal mengimpor file: ' + err.message);
+      } finally {
+        if (e.target) e.target.value = '';
       }
     };
     reader.readAsBinaryString(file);
@@ -106,7 +143,7 @@ export const AngsuranLogPage: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran Log</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
           <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
         <div className="flex gap-4">
@@ -206,3 +243,5 @@ export const AngsuranLogPage: React.FC = () => {
     </div>
   );
 };
+
+export default AngsuranLogPage;

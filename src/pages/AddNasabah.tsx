@@ -6,7 +6,7 @@ import { ArrowLeft, User, Package, Wallet, Calendar, MessageCircle, FileText, Sa
 import { NasabahStatus } from '../types';
 import { formatRupiah } from '../lib/formulas';
 
-export const AddNasabah: React.FC = () => {
+const AddNasabah: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -197,3 +197,5 @@ export const AddNasabah: React.FC = () => {
     </div>
   );
 };
+
+export default AddNasabah;

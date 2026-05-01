@@ -19,12 +19,14 @@ import {
   Check,
   Plus,
   Trash2,
-  X
+  X,
+  Upload
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { Link } from 'react-router-dom';
 
-export const KeuanganPage: React.FC = () => {
+const KeuanganPage: React.FC = () => {
   const { data: keuangan, loading: loadingKeuangan, error: errorKeuangan } = useKeuangan();
   const { data: nasabahList, loading: loadingNasabah } = useNasabah();
   const { settings, updateSettings } = useSettings();
@@ -65,15 +67,16 @@ export const KeuanganPage: React.FC = () => {
     }
   };
 
-  const handleAddCustomField = async () => {
-    if (!settings) return;
-    const label = prompt('Masukkan nama kotak keuangan baru:');
-    if (!label) return;
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryLabel, setNewCategoryLabel] = useState('');
 
+  const handleAddCustomField = async () => {
+    if (!settings || !newCategoryLabel.trim()) return;
+    
     const id = 'custom_' + Date.now();
     const newSettings: Settings = {
       ...settings,
-      custom_categories: [...(settings.custom_categories || []), { id, label }]
+      custom_categories: [...(settings.custom_categories || []), { id, label: newCategoryLabel.trim() }]
     };
     
     setSaving(true);
@@ -82,7 +85,10 @@ export const KeuanganPage: React.FC = () => {
       const newForm = { ...form, [id]: 0 };
       setForm(newForm);
       await handleSave(newForm);
+      setIsAddingCategory(false);
+      setNewCategoryLabel('');
     }
+    setSaving(false);
   };
 
   const handleDeleteCategory = async (id: string) => {
@@ -173,8 +179,8 @@ export const KeuanganPage: React.FC = () => {
     { key: 'uang_bank_neo', label: 'Uang Bank Neo', icon: Landmark, readonly: true },
     { key: 'uang_dipinjamkan', label: 'Uang yang Dipinjamkan', icon: DollarSign, readonly: true },
     { key: 'total_keuntungan', label: 'Total Untung', icon: TrendingUp, readonly: true },
-    { key: 'uang_tanah_lama', label: settings?.category_labels.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, canEdit: true },
-    { key: 'uang_tanah_baru', label: settings?.category_labels.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, canEdit: true },
+    { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, canEdit: true },
+    { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, canEdit: true },
     { key: 'uang_stokbit', label: 'Uang Stokbit (M3110)', icon: TrendingUp },
     { key: 'uang_renov', label: 'Uang Renov', icon: Hammer },
   ];
@@ -193,17 +199,61 @@ export const KeuanganPage: React.FC = () => {
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold tracking-tight">Manajemen Keuangan</h2>
-          <p className="text-gray-500 mt-1">Kelola saldo dan kustomisasi kategori keuangan Anda</p>
+          <h2 className="text-3xl font-black tracking-tight text-primary dark:text-sky-400">Keuangan Mitra 99</h2>
+          <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
-        <button 
-          onClick={handleAddCustomField}
-          type="button"
-          className="flex items-center gap-2 px-8 py-4 bg-white border border-gray-100 text-gray-600 rounded-[24px] font-bold text-sm hover:bg-gray-50 transition-all shadow-sm"
-        >
-          <Plus className="w-5 h-5 text-accent" /> Tambah Kotak
-        </button>
+        <div className="flex flex-wrap gap-4">
+          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-6 py-4 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-gray-200 transition-all">
+            <Upload className="w-4 h-4" />
+            Impor File
+          </Link>
+          <button 
+            type="button"
+            onClick={() => setIsAddingCategory(true)}
+            className="bg-accent text-white px-8 py-4 rounded-[24px] font-black text-sm flex items-center gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
+          >
+            <Plus className="w-5 h-5" />
+            Tambah Kotak
+          </button>
+        </div>
       </header>
+
+      {/* Categories Modal */}
+      {isAddingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-md p-8 shadow-2xl space-y-6">
+            <div>
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Kategori Baru</h3>
+              <p className="text-sm text-gray-500 mt-1">Masukkan nama kotak keuangan baru Anda.</p>
+            </div>
+            <input 
+              autoFocus
+              type="text"
+              placeholder="Contoh: Tabungan Haji"
+              value={newCategoryLabel}
+              onChange={e => setNewCategoryLabel(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-bold outline-none focus:border-accent transition-all"
+            />
+            <div className="flex gap-4">
+              <button 
+                type="button"
+                onClick={() => setIsAddingCategory(false)}
+                className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+              >
+                Batal
+              </button>
+              <button 
+                type="button"
+                disabled={saving || !newCategoryLabel.trim()}
+                onClick={handleAddCustomField}
+                className="flex-1 bg-accent text-white py-4 rounded-2xl font-black hover:scale-[1.02] active:scale-[0.95] transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
+              >
+                {saving ? 'Menyimpan...' : 'Tambah'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {allFields.map((field) => (
@@ -258,7 +308,7 @@ export const KeuanganPage: React.FC = () => {
                   value={formatRupiah(form?.[field.key] || 0)}
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   className={cn(
-                    "w-full bg-transparent text-2xl font-black text-gray-900 outline-none border-b-2 border-transparent transition-all",
+                    "w-full bg-transparent text-2xl font-black text-gray-900 dark:text-white outline-none border-b-2 border-transparent transition-all",
                     field.readonly ? "cursor-default opacity-60" : "focus:border-accent"
                   )}
                 />
@@ -295,3 +345,5 @@ export const KeuanganPage: React.FC = () => {
     </div>
   );
 };
+
+export default KeuanganPage;

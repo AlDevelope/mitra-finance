@@ -98,6 +98,8 @@ export interface Keuangan {
 export interface Settings {
   logo_url?: string;
   kosan_modal?: number;
+  simulasi_harga?: number;
+  simulasi_dp?: number;
   category_labels: {
     uang_tanah_lama: string;
     uang_tanah_baru: string;
