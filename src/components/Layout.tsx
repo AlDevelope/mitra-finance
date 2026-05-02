@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Role } from '../types';
 import { Menu, X, LayoutDashboard, Users, Wallet, Home, Building2 } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { useSettings } from '../hooks/useSettings';
 
 export const Layout: React.FC = () => {
@@ -11,6 +12,20 @@ export const Layout: React.FC = () => {
   const { settings } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  const [scrolled, setScrolled] = useState(false);
+  const mainRef = React.useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (mainRef.current) {
+        setScrolled(mainRef.current.scrollTop > 20);
+      }
+    };
+    const main = mainRef.current;
+    main?.addEventListener('scroll', handleScroll);
+    return () => main?.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -52,9 +67,14 @@ export const Layout: React.FC = () => {
         </div>
       </div>
 
-      <main className="flex-1 xl:ml-64 overflow-y-auto relative h-screen custom-scrollbar">
+      <main ref={mainRef} className="flex-1 xl:ml-64 overflow-y-auto relative h-screen custom-scrollbar">
         {/* Mobile Header */}
-        <div className="xl:hidden sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 p-4 px-6 flex items-center justify-between shadow-sm">
+        <div className={cn(
+          "xl:hidden sticky top-0 z-30 transition-all duration-300 p-3 px-6 flex items-center justify-between",
+          scrolled 
+            ? "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-b border-gray-100/50 dark:border-slate-800/50 py-2 shadow-sm" 
+            : "bg-white/95 dark:bg-slate-900/95 border-b border-transparent py-4"
+        )}>
            <div className="flex items-center gap-3">
               {settings?.logo_url ? (
                 <img src={settings.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
@@ -64,8 +84,8 @@ export const Layout: React.FC = () => {
                 </div>
               )}
               <div className="flex flex-col">
-                <span className="font-black text-primary leading-none">M99</span>
-                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Digital System</span>
+                <span className="font-black text-primary leading-tight text-sm">Mitra Finance 99</span>
+                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Digital System</span>
               </div>
            </div>
            <button onClick={toggleMobileMenu} className="p-2.5 bg-gray-50 text-gray-500 rounded-2xl hover:bg-gray-100 active:scale-95 transition-all">
@@ -73,7 +93,7 @@ export const Layout: React.FC = () => {
            </button>
         </div>
 
-        <div className="max-w-7xl mx-auto p-4 md:p-10 pb-24 xl:pb-10">
+        <div className="max-w-7xl mx-auto p-4 md:p-10 pb-28 xl:pb-10">
           <Outlet />
         </div>
 

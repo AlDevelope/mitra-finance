@@ -100,45 +100,45 @@ const NotificationsPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 key={notif.id} 
                 className={cn(
-                  "glass p-6 rounded-[32px] flex flex-col sm:flex-row gap-6 group transition-all duration-300 border-l-4",
+                  "glass p-4 rounded-3xl flex items-start gap-4 group transition-all duration-300 border-l-4",
                   !notif.is_read ? "border-l-primary bg-primary/5" : "border-l-transparent",
                   notif.type === NotificationType.SUCCESS && !notif.is_read ? "border-l-success" : "",
                   notif.type === NotificationType.ERROR && !notif.is_read ? "border-l-danger" : ""
                 )}
               >
-                <div className="shrink-0">
+                <div className="shrink-0 scale-75 md:scale-100 origin-top-left">
                   {getIcon(notif.type)}
                 </div>
-                <div className="flex-1 space-y-2">
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
                       <h4 className={cn(
-                        "font-black text-lg tracking-tight",
+                        "font-black text-sm md:text-lg tracking-tight truncate",
                         !notif.is_read ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"
                       )}>
                         {notif.title}
                       </h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase tracking-widest bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-full">
-                          <Clock className="w-3 h-3" />
-                          {format(notif.created_at?.toDate() || new Date(), 'dd MMM yyyy, HH:mm', { locale: id })}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] md:text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase tracking-tighter bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-full whitespace-nowrap">
+                          <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                          {format(notif.created_at?.toDate() || new Date(), 'dd MMM HH:mm', { locale: id })}
                         </span>
                         {!notif.is_read && (
-                          <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">
-                            Baru
+                          <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">
+                            NEW
                           </span>
                         )}
                       </div>
                     </div>
                     <button 
                       onClick={() => deleteNotification(notif.id)}
-                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </button>
                   </div>
                   <p className={cn(
-                    "text-sm leading-relaxed",
+                    "text-xs md:text-sm leading-relaxed mt-2 line-clamp-2 md:line-clamp-none",
                     !notif.is_read ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"
                   )}>
                     {notif.message}
@@ -148,9 +148,9 @@ const NotificationsPage: React.FC = () => {
                     <div className="pt-2">
                       <button 
                         onClick={() => updateDoc(doc(db, 'notifications', notif.id), { is_read: true })}
-                        className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline"
+                        className="text-[9px] md:text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline group-hover:translate-x-1 transition-transform"
                       >
-                        <Check className="w-3 h-3" /> Tandai Selesai
+                        <Check className="w-2.5 h-2.5 md:w-3 md:h-3" /> Tandai Selesai
                       </button>
                     </div>
                   )}

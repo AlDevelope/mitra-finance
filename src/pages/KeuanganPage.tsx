@@ -198,8 +198,8 @@ const KeuanganPage: React.FC = () => {
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
         <div className="space-y-1">
-          <h2 className="text-3xl font-black tracking-tight text-primary dark:text-sky-400">Keuangan Mitra 99</h2>
-          <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
+          <h2 className="text-xl md:text-3xl font-black tracking-tight text-primary dark:text-sky-400">Mitra Finance 99</h2>
+          <p className="text-[10px] md:text-base text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
         <div className="flex flex-wrap gap-4">
           <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-6 py-4 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-gray-200 transition-all">
@@ -254,48 +254,45 @@ const KeuanganPage: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {allFields.map((field) => (
-          <div key={field.key} className="glass p-8 rounded-[40px] space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          <div key={field.key} className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] space-y-2 md:space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[100px] md:min-h-[160px] border border-white/10 shadow-sm">
              {field.canDelete && !editingField && (
               <button 
                 type="button"
                 onClick={() => handleDeleteCategory(field.key)}
-                className="absolute top-4 right-4 p-2 bg-red-50 text-red-300 hover:text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
+                className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-300 hover:text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
 
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col md:flex-row md:justify-between items-start md:items-start gap-2 md:gap-4">
+              <div className="flex-1 min-w-0 w-full">
                 {editingField === field.key ? (
-                  <div className="flex gap-2 mb-2 animate-in slide-in-from-top-1 duration-200">
+                  <div className="flex gap-1 mb-1 animate-in slide-in-from-top-1 duration-200">
                     <input 
                       type="text" 
                       autoFocus
                       value={newLabelText}
                       onChange={(e) => setNewLabelText(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveNewLabel(field.key)}
-                      className="flex-1 min-w-0 px-3 py-1.5 bg-white border border-accent/20 rounded-lg text-[10px] font-bold outline-none"
+                      className="flex-1 min-w-0 px-2 py-1 bg-white border border-accent/20 rounded-lg text-[8px] md:text-[10px] font-bold outline-none"
                     />
-                    <button type="button" onClick={() => saveNewLabel(field.key)} className="p-1 px-2 bg-accent text-white rounded-lg">
-                      <Check className="w-3 h-3" />
-                    </button>
-                    <button type="button" onClick={() => setEditingField(null)} className="p-1 px-2 bg-gray-100 text-gray-500 rounded-lg">
-                      <X className="w-3 h-3" />
+                    <button type="button" onClick={() => saveNewLabel(field.key)} className="p-1 px-1.5 bg-accent text-white rounded-lg">
+                      <Check className="w-2.5 h-2.5" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 mb-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{field.label}</label>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <label className="text-[7px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{field.label}</label>
                     {field.canEdit && (
                       <button 
                         type="button"
                         onClick={() => startEditLabel(field.key, field.label)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-accent transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-accent transition-all"
                       >
-                        <Edit2 className="w-3 h-3" />
+                        <Edit2 className="w-2.5 h-2.5" />
                       </button>
                     )}
                   </div>
@@ -307,27 +304,27 @@ const KeuanganPage: React.FC = () => {
                   value={formatRupiah(form?.[field.key] || 0)}
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   className={cn(
-                    "w-full bg-transparent text-2xl font-black text-gray-900 dark:text-white outline-none border-b-2 border-transparent transition-all",
+                    "w-full bg-transparent text-xs sm:text-sm md:text-2xl font-black text-gray-900 dark:text-white outline-none border-b-2 border-transparent transition-all truncate",
                     field.readonly ? "cursor-default opacity-60" : "focus:border-accent"
                   )}
                 />
               </div>
               <div className={cn(
-                "w-12 h-12 rounded-3xl flex items-center justify-center shrink-0",
-                field.readonly ? "bg-gray-100 text-gray-400" : "bg-primary/10 text-primary"
+                "hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-3xl items-center justify-center shrink-0",
+                field.readonly ? "bg-gray-100 dark:bg-white/5 text-gray-400" : "bg-primary/10 text-primary"
               )}>
-                <field.icon className="w-6 h-6" />
+                <field.icon className="w-4 h-4 md:w-6 md:h-6" />
               </div>
             </div>
           </div>
         ))}
 
-        <div className="md:col-span-2 lg:col-span-3 flex justify-end items-center gap-6 sticky bottom-6 z-20 md:relative md:bottom-0 mt-8">
+        <div className="md:col-span-2 lg:col-span-3 flex justify-end items-center gap-4 md:gap-6 sticky bottom-4 z-20 md:relative md:bottom-0 mt-8">
           {success && (
             <motion.p 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-green-500 font-bold bg-green-50 px-6 py-3 rounded-2xl shadow-sm border border-green-100"
+              className="hidden sm:block text-green-500 font-bold bg-green-50 px-6 py-3 rounded-2xl shadow-sm border border-green-100"
             >
               Berhasil diperbarui!
             </motion.p>
@@ -335,7 +332,7 @@ const KeuanganPage: React.FC = () => {
           <button
             type="submit"
             disabled={saving}
-            className="px-12 py-5 bg-accent text-white rounded-[24px] font-black shadow-2xl shadow-accent/30 hover:scale-[1.05] active:scale-[0.95] transition-all disabled:opacity-50 flex items-center gap-3"
+            className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 bg-accent text-white rounded-[20px] md:rounded-[24px] font-black text-xs md:text-base shadow-2xl shadow-accent/30 hover:scale-[1.05] active:scale-[0.95] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
           >
             {saving ? 'Menyimpan...' : 'TERAPKAN PERUBAHAN'}
           </button>

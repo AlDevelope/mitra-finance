@@ -192,39 +192,39 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="glass p-6 rounded-3xl relative overflow-hidden group"
+            className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl relative overflow-hidden group border border-white/10"
           >
-            <div className={cn("absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full opacity-10 transition-transform group-hover:scale-110", stat.color)} />
-            <div className="flex items-start justify-between relative z-10">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
-                <h3 className="text-xl font-bold mt-1">
+            <div className={cn("absolute top-0 right-0 w-12 h-12 md:w-20 md:h-20 -mr-3 -mt-3 md:-mr-6 md:-mt-6 rounded-full opacity-10 transition-transform group-hover:scale-110", stat.color)} />
+            <div className="flex flex-col md:flex-row md:items-start justify-between relative z-10 gap-2 md:gap-0">
+              <div className="order-2 md:order-1">
+                <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
+                <h3 className="text-sm md:text-xl font-black mt-0.5 md:mt-1 truncate">
                   {stat.isCurrency === false ? stat.value : formatRupiah(stat.value)}
                 </h3>
               </div>
-              <div className={cn("p-2.5 rounded-xl text-white shadow-lg", stat.color)}>
-                <stat.icon className="w-5 h-5" />
+              <div className={cn("p-2 md:p-2.5 rounded-lg md:rounded-xl text-white shadow-lg self-start md:self-auto order-1 md:order-2", stat.color)}>
+                <stat.icon className="w-3.5 h-3.5 md:w-5 md:h-5" />
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Nasabah Distribution */}
-        <section className="glass p-8 rounded-[40px] flex flex-col">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
-            <PieIcon className="w-5 h-5 text-accent" />
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] flex flex-col">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <PieIcon className="w-4 h-4 md:w-5 md:h-5 text-accent" />
             Distribusi Nasabah
           </h3>
-          <div className="h-64 relative">
+          <div className="h-48 md:h-64 relative">
              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -261,12 +261,12 @@ const Dashboard: React.FC = () => {
         </section>
 
         {/* Financial Distribution */}
-        <section className="glass p-8 rounded-[40px] lg:col-span-2">
-          <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
-            <BarChart3 className="w-5 h-5 text-accent" />
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] lg:col-span-2">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-accent" />
             Perbandingan Aset Keuangan
           </h3>
-          <div className="h-64">
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -304,14 +304,14 @@ const Dashboard: React.FC = () => {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         {/* Land Assets */}
-        <section className="glass p-8 rounded-[40px]">
-           <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
-            <MapIcon className="w-5 h-5 text-emerald-500" />
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px]">
+           <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <MapIcon className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
             Nilai Aset Properti (Tanah)
           </h3>
-          <div className="h-64">
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
                <BarChart data={landData} layout="vertical" margin={{ left: 20 }}>
                   <XAxis type="number" hide />
@@ -343,28 +343,28 @@ const Dashboard: React.FC = () => {
         </section>
 
         {/* Other Updates */}
-        <section className="glass p-8 rounded-[40px] flex flex-col justify-center">
-           <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-             <Hammer className="w-5 h-5 text-accent" />
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] flex flex-col justify-center gap-4">
+           <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
+             <Hammer className="w-4 h-4 md:w-5 md:h-5 text-accent" />
              Pendukung Operasional
            </h3>
-           <div className="space-y-4">
-              <div className="p-5 bg-gray-50 rounded-3xl flex items-center justify-between">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 md:block space-y-0 md:space-y-4">
+              <div className="p-4 md:p-5 bg-gray-50 dark:bg-white/5 rounded-2xl md:rounded-3xl flex items-center justify-between">
                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dana Renovasi</p>
-                    <p className="text-xl font-bold text-primary">{formatRupiah(keuangan?.uang_renov || 0)}</p>
+                    <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dana Renovasi</p>
+                    <p className="text-sm md:text-xl font-black text-primary dark:text-sky-400">{formatRupiah(keuangan?.uang_renov || 0)}</p>
                  </div>
-                 <div className="bg-white p-3 rounded-2xl shadow-sm">
-                    <Hammer className="w-6 h-6 text-accent" />
+                 <div className="bg-white dark:bg-slate-900 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm">
+                    <Hammer className="w-4 h-4 md:w-6 md:h-6 text-accent" />
                  </div>
               </div>
-              <div className="p-5 bg-gray-50 rounded-3xl flex items-center justify-between">
+              <div className="p-4 md:p-5 bg-gray-50 dark:bg-white/5 rounded-2xl md:rounded-3xl flex items-center justify-between">
                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aset Stokbit (M3110)</p>
-                    <p className="text-xl font-bold text-primary">{formatRupiah(keuangan?.uang_stokbit || 0)}</p>
+                    <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aset Stokbit (M3110)</p>
+                    <p className="text-sm md:text-xl font-black text-primary dark:text-sky-400">{formatRupiah(keuangan?.uang_stokbit || 0)}</p>
                  </div>
-                 <div className="bg-white p-3 rounded-2xl shadow-sm">
-                    <TrendingUp className="w-6 h-6 text-sky-500" />
+                 <div className="bg-white dark:bg-slate-900 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm">
+                    <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-sky-500" />
                  </div>
               </div>
            </div>

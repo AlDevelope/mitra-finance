@@ -209,24 +209,24 @@ const AngsuranLogPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="glass p-8 rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-xl shadow-green-500/20">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
-          <TrendingUp className="w-6 h-6 mb-4 text-white/50" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Total Masuk</p>
-          <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.masuk)}</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-lg shadow-green-500/10">
+          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
+          <TrendingUp className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
+          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Total Masuk</p>
+          <h3 className="text-sm md:text-2xl font-black mt-1 leading-none">{formatRupiah(totals.masuk)}</h3>
         </div>
-        <div className="glass p-8 rounded-[40px] bg-red-500 text-white relative overflow-hidden shadow-xl shadow-red-500/20">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
-          <TrendingDown className="w-6 h-6 mb-4 text-white/50" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Total Keluar</p>
-          <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.keluar)}</h3>
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-red-500 text-white relative overflow-hidden shadow-lg shadow-red-500/10">
+          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
+          <TrendingDown className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
+          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Total Keluar</p>
+          <h3 className="text-sm md:text-2xl font-black mt-1 leading-none">{formatRupiah(totals.keluar)}</h3>
         </div>
-        <div className="glass p-8 rounded-[40px] bg-primary text-white relative overflow-hidden shadow-xl shadow-primary/20 text-center sm:text-left">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
-          <Wallet className="w-6 h-6 mb-4 text-white/50" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Sisa Saldo Sekarang</p>
-          <h3 className="text-2xl lg:text-3xl font-black mt-1">{formatRupiah(totals.saldo)}</h3>
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-primary text-white relative overflow-hidden shadow-lg shadow-primary/10 col-span-2 md:col-span-1">
+          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
+          <Wallet className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
+          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Sisa Saldo</p>
+          <h3 className="text-sm md:text-2xl lg:text-3xl font-black mt-1 leading-none">{formatRupiah(totals.saldo)}</h3>
         </div>
       </div>
 

@@ -56,8 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               (e.target as HTMLImageElement).parentElement?.querySelector('.logo-placeholder')?.classList.remove('hidden');
             }} />
           )}
-          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center font-bold text-xl logo-placeholder hidden">
-            M99
+          <div className="w-auto h-10 px-3 bg-accent rounded-lg flex items-center justify-center font-bold text-xs logo-placeholder hidden">
+            Mitra Finance 99
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight truncate w-32">Mitra Finance 99</h1>
