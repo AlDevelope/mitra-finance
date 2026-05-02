@@ -25,6 +25,8 @@ const KosankuPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
+  const [localMasuk, setLocalMasuk] = useState('0');
+  const [localKeluar, setLocalKeluar] = useState('0');
   const [isEditingModal, setIsEditingModal] = useState(false);
   const [newModalVal, setNewModalVal] = useState(settings?.kosan_modal?.toString() || '15000000');
 
@@ -63,6 +65,8 @@ const KosankuPage: React.FC = () => {
       });
       setShowAdd(false);
       setForm({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
+      setLocalMasuk('0');
+      setLocalKeluar('0');
     } catch (err) {
       alert('Gagal menambah data');
     }
@@ -182,9 +186,12 @@ const KosankuPage: React.FC = () => {
           {isEditingModal ? (
             <div className="flex gap-2 mt-2">
               <input 
-                type="number" 
-                value={newModalVal}
-                onChange={e => setNewModalVal(e.target.value)}
+                type="text" 
+                value={formatRupiah(Number(newModalVal) || 0)}
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setNewModalVal(raw);
+                }}
                 className="bg-white/10 border-none outline-none text-white font-bold p-1 rounded w-full"
                 autoFocus
               />
@@ -212,11 +219,33 @@ const KosankuPage: React.FC = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keluar</label>
-              <input type="number" required value={form.keluar} onChange={e => setForm({...form, keluar: Number(e.target.value)})} className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" />
+              <input 
+                type="text" 
+                required 
+                value={localKeluar} 
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  const num = parseInt(raw) || 0;
+                  setLocalKeluar(formatRupiah(num));
+                  setForm({...form, keluar: num});
+                }} 
+                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Masuk</label>
-              <input type="number" required value={form.masuk} onChange={e => setForm({...form, masuk: Number(e.target.value)})} className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" />
+              <input 
+                type="text" 
+                required 
+                value={localMasuk} 
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  const num = parseInt(raw) || 0;
+                  setLocalMasuk(formatRupiah(num));
+                  setForm({...form, masuk: num});
+                }} 
+                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+              />
             </div>
             <button type="submit" className="bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20">Simpan Data</button>
           </form>

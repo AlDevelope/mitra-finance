@@ -14,7 +14,7 @@ import {
 import { db } from '../lib/firebase';
 import { Nasabah, Angsuran, NasabahStatus, NotificationType } from '../types';
 import { formatRupiah, generateWhatsAppMessage, formatDisplayDate } from '../lib/formulas';
-import { ArrowLeft, MessageCircle, Share2, Edit, Trash2, CheckCircle2, Plus, Calendar, Wallet, Clock, History, Camera, TrendingUp } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Edit, Trash2, CheckCircle2, Plus, Calendar, Wallet, Clock, History, Camera, TrendingUp, X as XIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -485,6 +485,12 @@ const NasabahDetail: React.FC = () => {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white dark:bg-slate-900 rounded-[40px] p-10 max-w-md w-full text-center relative overflow-hidden shadow-2xl"
            >
+              <button 
+                onClick={() => setShowLunasModal(false)}
+                className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-400"
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
               {/* Confetti-like decor */}
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-accent to-success" />
               

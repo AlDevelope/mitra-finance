@@ -21,6 +21,8 @@ const AngsuranLogPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
+  const [localMasuk, setLocalMasuk] = useState('0');
+  const [localKeluar, setLocalKeluar] = useState('0');
 
   useEffect(() => {
     const q = query(collection(db, 'angsuran_logs'), orderBy('tanggal', 'asc'), orderBy('created_at', 'asc'));
@@ -52,6 +54,8 @@ const AngsuranLogPage: React.FC = () => {
       await addDoc(collection(db, 'angsuran_logs'), data);
       setShowAdd(false);
       setForm({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
+      setLocalMasuk('0');
+      setLocalKeluar('0');
     } catch (err) {
       alert('Gagal menambah log');
     }
@@ -83,18 +87,34 @@ const AngsuranLogPage: React.FC = () => {
         // Group 1: Cols B(1), C(2), D(3), E(4)
         // Group 2: Cols H(7), I(8), J(9), K(10)
         
-        for (let i = 2; i < rows.length; i++) {
+        for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
-          if (!row) continue;
+          if (!row || row.length < 2) continue;
 
-          // Parse Group 1
-          if (row[1] && row[1] !== 'TGL:NO' && !String(row[1]).includes('Keterangan')) { // If Date exists in col B and not a header
+          // Helper to check if a cell looks like a "Date" header
+          const isHeader = (cell: any) => {
+            if (!cell) return false;
+            const s = String(cell).toUpperCase();
+            return s.includes('TGL') || s.includes('TANGGAL') || s.includes('NO');
+          };
+
+          const isTitle = (cell: any) => {
+            if (!cell) return false;
+            return String(cell).includes('Keterangan Keuangan') || String(cell).includes('Multi Kredit');
+          };
+
+          // Parse Group 1 (B, C, D, E)
+          if (row[1] && !isHeader(row[1]) && !isTitle(row[1])) {
             const tanggal = parseExcelDate(row[1]);
             const keterangan = row[2] || '';
             const masuk = parseExcelValue(row[3]);
             const keluar = parseExcelValue(row[4]);
             
-            if (keterangan && (masuk > 0 || keluar > 0) && !String(keterangan).toLowerCase().includes('keterangan')) {
+            // Validate it's actually a data row (has either income/expense OR a valid date string with /)
+            const hasAmount = masuk > 0 || keluar > 0;
+            const hasDesc = String(keterangan).trim().length > 0;
+
+            if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
                 keterangan: String(keterangan),
@@ -106,14 +126,17 @@ const AngsuranLogPage: React.FC = () => {
             }
           }
 
-          // Parse Group 2
-          if (row[7] && row[7] !== 'TGL:NO' && !String(row[7]).includes('Keterangan')) { // If Date exists in col H and not a header
+          // Parse Group 2 (H, I, J, K)
+          if (row[7] && !isHeader(row[7]) && !isTitle(row[7])) {
             const tanggal = parseExcelDate(row[7]);
             const keterangan = row[8] || '';
             const masuk = parseExcelValue(row[9]);
             const keluar = parseExcelValue(row[10]);
 
-            if (keterangan && (masuk > 0 || keluar > 0) && !String(keterangan).toLowerCase().includes('keterangan')) {
+            const hasAmount = masuk > 0 || keluar > 0;
+            const hasDesc = String(keterangan).trim().length > 0;
+
+            if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
                 keterangan: String(keterangan),
@@ -174,11 +197,31 @@ const AngsuranLogPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 md:col-span-1">
                <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Masuk</label>
-                <input type="number" value={form.masuk} onChange={e => setForm({...form, masuk: Number(e.target.value)})} className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" />
+                <input 
+                  type="text" 
+                  value={localMasuk} 
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const num = parseInt(raw) || 0;
+                    setLocalMasuk(formatRupiah(num));
+                    setForm({...form, masuk: num});
+                  }} 
+                  className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keluar</label>
-                <input type="number" value={form.keluar} onChange={e => setForm({...form, keluar: Number(e.target.value)})} className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" />
+                <input 
+                  type="text" 
+                  value={localKeluar} 
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const num = parseInt(raw) || 0;
+                    setLocalKeluar(formatRupiah(num));
+                    setForm({...form, keluar: num});
+                  }} 
+                  className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+                />
               </div>
             </div>
             <button type="submit" className="bg-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-accent/20">Simpan Log</button>

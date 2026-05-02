@@ -157,9 +157,8 @@ const KeuanganPage: React.FC = () => {
 
     // 3. uang yang ada (nasabah) = sum of all sisa hutang (handled via useEffect)
     
-    // 4. total untung = uang nasabah + uang bank neo + uang dipinjamkan + SUM OF ALL CUSTOM CATEGORIES
-    const customSum = (settings?.custom_categories || []).reduce((acc, c) => acc + (newForm[c.id] || 0), 0);
-    const totalUntung = (newForm.uang_nasabah || 0) + bankNeo + dipinjamkan + customSum;
+    // 4. total untung = uang nasabah + uang bank neo + uang dipinjamkan (Custom categories are now plain and not added)
+    const totalUntung = (newForm.uang_nasabah || 0) + bankNeo + dipinjamkan;
 
     setForm({
       ...newForm,
