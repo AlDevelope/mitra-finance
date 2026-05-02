@@ -192,69 +192,72 @@ const NasabahPage: React.FC = () => {
         </div>
       ) : (
         <div className="glass rounded-3xl overflow-hidden">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Nama / Barang</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Angsuran / Sisa</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Sisa Hutang</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Progress</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredList.map((nasabah) => (
-                <tr key={nasabah.id} className="hover:bg-gray-50/30 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center font-bold text-primary text-xs">
-                        {nasabah.nama.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm">{nasabah.nama}</p>
-                        <p className="text-xs text-gray-400 italic">{nasabah.barang}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className={cn(
-                      "px-2.5 py-1 rounded-full text-[10px] font-bold",
-                      nasabah.status === NasabahStatus.LUNAS ? "bg-success/10 text-success" :
-                      "bg-primary/10 text-primary"
-                    )}>
-                      {nasabah.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className="text-sm font-bold">{nasabah.angsuran_terbayar} / {nasabah.jumlah_angsuran}</p>
-                    <p className="text-[10px] text-gray-400">Sisa {nasabah.sisa_angsuran} MGU</p>
-                  </td>
-                  <td className="px-6 py-5 text-sm font-bold text-danger">{formatRupiah(nasabah.sisa_hutang)}</td>
-                  <td className="px-6 py-5">
-                    <div className="w-24">
-                       <div className="flex justify-between text-[10px] font-bold mb-1">
-                          <span className="text-primary">{nasabah.progress_persen}%</span>
-                       </div>
-                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-accent" style={{ width: `${nasabah.progress_persen}%` }} />
-                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <Link to={`/nasabah/${nasabah.id}`} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all">
-                         <Eye className="w-4 h-4" />
-                       </Link>
-                       <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all">
-                         <MessageCircle className="w-4 h-4" />
-                       </a>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-white/5">
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Nama / Barang</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-center">Status</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">MGU</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Sisa Hutang</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Progress</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-right">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {filteredList.map((nasabah) => (
+                  <tr key={nasabah.id} className="hover:bg-gray-50/30 dark:hover:bg-white/5 transition-colors group">
+                    <td className="px-4 lg:px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center font-bold text-primary text-xs shrink-0">
+                          {nasabah.nama.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs lg:text-sm truncate max-w-[120px] lg:max-w-none">{nasabah.nama}</p>
+                          <p className="text-[10px] text-gray-400 truncate max-w-[120px] lg:max-w-none">{nasabah.barang}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-center">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-bold inline-block",
+                        nasabah.status === NasabahStatus.LUNAS ? "bg-success/10 text-success" :
+                        nasabah.status === NasabahStatus.MENUNGGAK ? "bg-danger/10 text-danger" :
+                        "bg-primary/10 text-primary"
+                      )}>
+                        {nasabah.status}
+                      </span>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4">
+                      <p className="text-xs font-bold">{nasabah.angsuran_terbayar}/{nasabah.jumlah_angsuran}</p>
+                      <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Sisa {nasabah.sisa_angsuran}</p>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-xs font-bold text-danger">{formatRupiah(nasabah.sisa_hutang)}</td>
+                    <td className="px-4 lg:px-6 py-4">
+                      <div className="w-16 lg:w-24">
+                         <div className="flex justify-between text-[9px] font-bold mb-0.5">
+                            <span className="text-primary">{nasabah.progress_persen}%</span>
+                         </div>
+                         <div className="h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-accent" style={{ width: `${nasabah.progress_persen}%` }} />
+                         </div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Link to={`/nasabah/${nasabah.id}`} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all border border-primary/5">
+                           <Eye className="w-4 h-4" />
+                         </Link>
+                         <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="p-2 bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400 rounded-lg hover:bg-green-200 transition-all border border-green-500/5">
+                           <MessageCircle className="w-4 h-4" />
+                         </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

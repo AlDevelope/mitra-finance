@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   collection, 
   onSnapshot, 
@@ -10,11 +10,12 @@ import {
   doc 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { AngsuranLog } from '../types';
+import { AngsuranLog, NotificationType } from '../types';
 import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
-import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download } from 'lucide-react';
+import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
+import { logNotification } from '../lib/notifications';
 
 const AngsuranLogPage: React.FC = () => {
   const [logs, setLogs] = useState<AngsuranLog[]>([]);
@@ -42,6 +43,12 @@ const AngsuranLogPage: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  const totals = useMemo(() => {
+    const masuk = logs.reduce((acc, curr) => acc + (Number(curr.masuk) || 0), 0);
+    const keluar = logs.reduce((acc, curr) => acc + (Number(curr.keluar) || 0), 0);
+    return { masuk, keluar, saldo: masuk - keluar };
+  }, [logs]);
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -52,6 +59,16 @@ const AngsuranLogPage: React.FC = () => {
         created_at: serverTimestamp()
       };
       await addDoc(collection(db, 'angsuran_logs'), data);
+      
+      // Log Notification
+      const type = data.masuk > 0 ? 'Pemasukan' : 'Pengeluaran';
+      const amount = data.masuk > 0 ? data.masuk : data.keluar;
+      await logNotification(
+        `Catat ${type} Baru`,
+        `Berhasil mencatat ${type.toLowerCase()} sebesar ${formatRupiah(amount)}: ${data.keterangan}`,
+        data.masuk > 0 ? NotificationType.SUCCESS : NotificationType.WARNING
+      );
+
       setShowAdd(false);
       setForm({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
       setLocalMasuk('0');
@@ -63,7 +80,16 @@ const AngsuranLogPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus log ini?')) {
+      const logToDelete = logs.find(l => l.id === id);
       await deleteDoc(doc(db, 'angsuran_logs', id));
+      
+      if (logToDelete) {
+        await logNotification(
+          'Log Keuangan Dihapus',
+          `Menghapus catatan keuangan: ${logToDelete.keterangan}`,
+          NotificationType.ERROR
+        );
+      }
     }
   };
 
@@ -169,8 +195,8 @@ const AngsuranLogPage: React.FC = () => {
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
           <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-gray-600 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
+        <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-5 h-5" /> Import Angsuran
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
           </label>
@@ -182,6 +208,27 @@ const AngsuranLogPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="glass p-8 rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-xl shadow-green-500/20">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
+          <TrendingUp className="w-6 h-6 mb-4 text-white/50" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Total Masuk</p>
+          <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.masuk)}</h3>
+        </div>
+        <div className="glass p-8 rounded-[40px] bg-red-500 text-white relative overflow-hidden shadow-xl shadow-red-500/20">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
+          <TrendingDown className="w-6 h-6 mb-4 text-white/50" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Total Keluar</p>
+          <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.keluar)}</h3>
+        </div>
+        <div className="glass p-8 rounded-[40px] bg-primary text-white relative overflow-hidden shadow-xl shadow-primary/20 text-center sm:text-left">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
+          <Wallet className="w-6 h-6 mb-4 text-white/50" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Sisa Saldo Sekarang</p>
+          <h3 className="text-2xl lg:text-3xl font-black mt-1">{formatRupiah(totals.saldo)}</h3>
+        </div>
+      </div>
 
       {showAdd && (
         <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-[40px] border-2 border-accent/10">
@@ -231,40 +278,40 @@ const AngsuranLogPage: React.FC = () => {
 
       <div className="glass rounded-[40px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[700px]">
             <thead>
-              <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
-                <th className="px-8 py-5">Tgl No</th>
-                <th className="px-8 py-5">Keterangan</th>
-                <th className="px-8 py-5">Masuk</th>
-                <th className="px-8 py-5">Keluar</th>
-                <th className="px-8 py-5">Total</th>
-                <th className="px-8 py-5 text-right">Aksi</th>
+              <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 dark:bg-slate-800/50 border-b dark:border-white/5">
+                <th className="px-6 py-5">Tgl No</th>
+                <th className="px-6 py-5">Keterangan</th>
+                <th className="px-6 py-5">Masuk</th>
+                <th className="px-6 py-5">Keluar</th>
+                <th className="px-6 py-5">Total</th>
+                <th className="px-6 py-5 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {logs.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-8 py-6">
+                <tr key={l.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${l.masuk > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${l.masuk > 0 ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
                         {l.masuk > 0 ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
                       </div>
-                      <span className="font-bold text-gray-700">{formatDisplayDate(l.tanggal)}</span>
+                      <span className="font-bold text-gray-700 dark:text-gray-300 text-xs">{formatDisplayDate(l.tanggal)}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 font-medium text-gray-900">{l.keterangan}</td>
-                  <td className="px-8 py-6 font-bold text-success">{l.masuk > 0 ? formatRupiah(l.masuk) : '-'}</td>
-                  <td className="px-8 py-6 font-bold text-danger">{l.keluar > 0 ? formatRupiah(l.keluar) : '-'}</td>
-                  <td className="px-8 py-6">
+                  <td className="px-6 py-5 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{l.keterangan}</td>
+                  <td className="px-6 py-5 font-bold text-success text-xs">{l.masuk > 0 ? formatRupiah(l.masuk) : '-'}</td>
+                  <td className="px-6 py-5 font-bold text-danger text-xs">{l.keluar > 0 ? formatRupiah(l.keluar) : '-'}</td>
+                  <td className="px-6 py-5">
                     <div className="flex flex-col">
-                       <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Running Balance</span>
-                       <span className="font-black text-primary text-lg leading-tight">{formatRupiah(l.total)}</span>
+                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Balance</span>
+                       <span className="font-black text-primary dark:text-sky-400 text-base leading-tight">{formatRupiah(l.total)}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-right">
+                  <td className="px-6 py-5 text-right">
                     <button onClick={() => handleDelete(l.id)} className="p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-xl transition-all">
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>

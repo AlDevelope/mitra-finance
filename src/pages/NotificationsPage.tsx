@@ -1,242 +1,167 @@
 import React, { useState, useEffect } from 'react';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck, Image as ImageIcon, Save } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { AdminConfirmModal } from '../components/AdminConfirmModal';
-import { useSettings } from '../hooks/useSettings';
+import { Notification, NotificationType } from '../types';
+import { Bell, Trash2, CheckCircle2, AlertTriangle, AlertCircle, Info, Clock, Check } from 'lucide-react';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { motion } from 'motion/react';
+import { cn } from '../lib/utils';
 
-const SystemSettings: React.FC = () => {
-  const { settings, updateSettings } = useSettings();
-  const [loading, setLoading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState('');
-  const [showResetNasabahModal, setShowResetNasabahModal] = useState(false);
-  const [showResetKeuanganModal, setShowResetKeuanganModal] = useState(false);
-  const navigate = useNavigate();
+const NotificationsPage: React.FC = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (settings?.logo_url) {
-      setLogoUrl(settings.logo_url);
-    }
-  }, [settings]);
-
-  const handleUpdateBranding = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!settings) return;
-    
-    setLoading(true);
-    const success = await updateSettings({
-      ...settings,
-      logo_url: logoUrl
+    const q = query(collection(db, 'notifications'), orderBy('created_at', 'desc'), limit(100));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Notification[];
+      setNotifications(data);
+      setLoading(false);
     });
-    
-    if (success) {
-      alert('Logo berhasil diperbarui!');
-    } else {
-      alert('Gagal memperbarui logo.');
-    }
-    setLoading(false);
-  };
 
-  const handleResetNasabah = async () => {
-    setLoading(true);
-    try {
-      const snap = await getDocs(collection(db, 'nasabah'));
-      const deletePromises = snap.docs.map(async (d) => {
-        // Delete history subcollection
-        const histSnap = await getDocs(collection(db, 'nasabah', d.id, 'history'));
-        const histPromises = histSnap.docs.map(hd => deleteDoc(hd.ref));
-        await Promise.all(histPromises);
-        // Delete main doc
-        return deleteDoc(d.ref);
-      });
-      
-      await Promise.all(deletePromises);
-      alert('Semua data nasabah berhasil dihapus.');
-      navigate('/dashboard');
-    } catch (err) {
-      console.error(err);
-      alert('Gagal menghapus data nasabah.');
-    } finally {
-      setLoading(false);
+    return () => unsubscribe();
+  }, []);
+
+  const markAllAsRead = async () => {
+    const unread = notifications.filter(n => !n.is_read);
+    for (const notif of unread) {
+      await updateDoc(doc(db, 'notifications', notif.id), { is_read: true });
     }
   };
 
-  const handleResetKeuangan = async () => {
-    setLoading(true);
+  const deleteNotification = async (id: string) => {
     try {
-      await updateDoc(doc(db, 'keuangan', 'summary'), {
-        uang_cash: 0,
-        uang_bank_neo: 0,
-        uang_dipinjamkan: 0,
-        uang_nasabah: 0,
-        uang_stokbit: 0,
-        uang_renov: 0,
-        uang_tanah_lama: 0,
-        uang_tanah_baru: 0,
-        total_keuntungan: 0
-      });
-      alert('Data keuangan berhasil direset.');
+      await deleteDoc(doc(db, 'notifications', id));
     } catch (err) {
-      console.error(err);
-      alert('Gagal meriset data keuangan.');
-    } finally {
-      setLoading(false);
+      console.error('Failed to delete notification:', err);
+    }
+  };
+
+  const getIcon = (type: NotificationType) => {
+    switch (type) {
+      case NotificationType.SUCCESS: 
+        return <div className="p-3 bg-green-500/10 rounded-2xl"><CheckCircle2 className="w-6 h-6 text-green-500" /></div>;
+      case NotificationType.WARNING: 
+        return <div className="p-3 bg-amber-500/10 rounded-2xl"><AlertCircle className="w-6 h-6 text-amber-500" /></div>;
+      case NotificationType.ERROR: 
+        return <div className="p-3 bg-red-500/10 rounded-2xl"><AlertTriangle className="w-6 h-6 text-red-500" /></div>;
+      default: 
+        return <div className="p-3 bg-primary/10 rounded-2xl"><Info className="w-6 h-6 text-primary" /></div>;
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
-      <header>
-        <h2 className="text-3xl font-bold tracking-tight">Pengaturan Sistem</h2>
-        <p className="text-gray-500 mt-1">Kelola data dan fungsionalitas aplikasi Mitra Finance 99</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <div className="w-16 h-16 bg-primary/10 rounded-[30px] flex items-center justify-center shadow-inner">
+            <Bell className="w-8 h-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Pemberitahuan</h1>
+            <p className="text-gray-500 font-medium italic">Log kejadian sistem & aktivitas keuangan</p>
+          </div>
+        </div>
+        
+        {notifications.some(n => !n.is_read) && (
+          <button 
+            onClick={markAllAsRead}
+            className="px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 rounded-2xl text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2"
+          >
+            <Check className="w-4 h-4" /> Tandai Semua Dibaca
+          </button>
+        )}
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <section className="glass p-8 rounded-[40px]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-accent/10 text-accent rounded-2xl">
-              <ImageIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">Identitas Visual</h3>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Branding Perusahaan</p>
-            </div>
+      <div className="space-y-4">
+        {loading ? (
+          <div className="glass p-20 rounded-[40px] flex flex-col items-center justify-center gap-4">
+             <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+             <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Sinkronisasi data...</p>
           </div>
-
-          <form onSubmit={handleUpdateBranding} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Logo URL</label>
-              <input 
-                type="url" 
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://example.com/logo.png"
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-primary outline-none transition-all"
-              />
-              <p className="text-[10px] text-gray-400 italic px-1">Masukkan URL gambar logo (sebaiknya format PNG/SVG transparan).</p>
-            </div>
-
-            {logoUrl && (
-              <div className="p-4 bg-gray-50 rounded-2xl flex flex-col items-center justify-center space-y-2">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Preview Logo</p>
-                <img src={logoUrl} alt="Logo Preview" className="h-16 object-contain" />
-              </div>
-            )}
-
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-            >
-              <Save className="w-5 h-5" />
-              Simpan Branding
-            </button>
-          </form>
-        </section>
-
-        <section className="glass p-8 rounded-[40px] border-2 border-red-50/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-red-100 text-red-600 rounded-2xl">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">Manajemen Data</h3>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Zona Berbahaya</p>
-            </div>
+        ) : notifications.length === 0 ? (
+          <div className="glass p-20 rounded-[40px] flex flex-col items-center justify-center text-center">
+             <div className="w-24 h-24 bg-gray-50 dark:bg-white/5 rounded-[40px] flex items-center justify-center mb-6">
+                <Bell className="w-10 h-10 text-gray-300 dark:text-gray-700" />
+             </div>
+             <h3 className="text-xl font-bold text-gray-400">Belum Ada Aktivitas</h3>
+             <p className="text-gray-500 mt-2 max-w-xs">Semua log aktivitas akan muncul di sini secara otomatis.</p>
           </div>
-
+        ) : (
           <div className="space-y-4">
-            <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-red-700">Hapus Semua Nasabah</p>
-                  <p className="text-xs text-red-600/70">Menghapus seluruh daftar nasabah, histori cicilan, dan saldo hutang yang sedang berjalan.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowResetNasabahModal(true)}
-                disabled={loading}
-                className="w-full mt-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all active:scale-95 disabled:opacity-50"
+            {notifications.map((notif) => (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                key={notif.id} 
+                className={cn(
+                  "glass p-6 rounded-[32px] flex flex-col sm:flex-row gap-6 group transition-all duration-300 border-l-4",
+                  !notif.is_read ? "border-l-primary bg-primary/5" : "border-l-transparent",
+                  notif.type === NotificationType.SUCCESS && !notif.is_read ? "border-l-success" : "",
+                  notif.type === NotificationType.ERROR && !notif.is_read ? "border-l-danger" : ""
+                )}
               >
-                Hapus Seluruh Data Nasabah
-              </button>
-            </div>
-
-            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-               <div className="flex items-start gap-3">
-                <RefreshCcw className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-orange-700">Reset Ringkasan Keuangan</p>
-                  <p className="text-xs text-orange-600/70">Mengembalikan semua saldo di halaman Keuangan menjadi Rp. 0 (NOL).</p>
+                <div className="shrink-0">
+                  {getIcon(notif.type)}
                 </div>
-              </div>
-              <button 
-                onClick={() => setShowResetKeuanganModal(true)}
-                disabled={loading}
-                className="w-full mt-4 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-50"
-              >
-                Reset Saldo Keuangan
-              </button>
-            </div>
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <h4 className={cn(
+                        "font-black text-lg tracking-tight",
+                        !notif.is_read ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"
+                      )}>
+                        {notif.title}
+                      </h4>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 uppercase tracking-widest bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          {format(notif.created_at?.toDate() || new Date(), 'dd MMM yyyy, HH:mm', { locale: id })}
+                        </span>
+                        {!notif.is_read && (
+                          <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full animate-pulse">
+                            Baru
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => deleteNotification(notif.id)}
+                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className={cn(
+                    "text-sm leading-relaxed",
+                    !notif.is_read ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"
+                  )}>
+                    {notif.message}
+                  </p>
+                  
+                  {!notif.is_read && (
+                    <div className="pt-2">
+                      <button 
+                        onClick={() => updateDoc(doc(db, 'notifications', notif.id), { is_read: true })}
+                        className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:underline"
+                      >
+                        <Check className="w-3 h-3" /> Tandai Selesai
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </section>
-
-        <AdminConfirmModal
-          isOpen={showResetNasabahModal}
-          onClose={() => setShowResetNasabahModal(false)}
-          onConfirm={handleResetNasabah}
-          title="Reset Semua Nasabah"
-          message="PERINGATAN: Anda akan menghapus SEMUA data nasabah dan riwayat pembayarannya. Tindakan ini tidak dapat dibatalkan."
-        />
-
-        <AdminConfirmModal
-          isOpen={showResetKeuanganModal}
-          onClose={() => setShowResetKeuanganModal(false)}
-          onConfirm={handleResetKeuangan}
-          title="Reset Data Keuangan"
-          message="Apakah Anda yakin ingin mengembalikan semua saldo keuangan menjadi Rp 0? Ini akan mengubah angka di dashboard utama."
-        />
-
-        <section className="glass p-8 rounded-[40px]">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-primary/10 text-primary rounded-2xl">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">Informasi Sistem</h3>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Digital Platform</p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-6 rounded-3xl space-y-4">
-              <div className="flex justify-between items-center group">
-                <span className="text-sm font-bold text-gray-500">Versi Aplikasi</span>
-                <span className="text-sm font-bold text-primary px-3 py-1 bg-white rounded-full shadow-sm">v2.4.0-digital</span>
-              </div>
-              <div className="flex justify-between items-center group">
-                <span className="text-sm font-bold text-gray-500">Environtment</span>
-                <span className="text-sm font-bold text-gray-700 px-3 py-1 bg-white rounded-full shadow-sm">Production</span>
-              </div>
-              <div className="flex justify-between items-center group">
-                <span className="text-sm font-bold text-gray-500">Database</span>
-                <span className="text-sm font-bold text-gray-700 px-3 py-1 bg-white rounded-full shadow-sm">Google Firestore</span>
-              </div>
-            </div>
-
-            <div className="p-6 bg-primary/5 rounded-[30px] border border-primary/5">
-               <p className="text-xs font-bold text-primary mb-2 uppercase tracking-widest">Catatan Pengembang</p>
-               <p className="text-xs text-gray-500 leading-relaxed font-medium italic">
-                 "Platform ini dirancang khusus untuk kemudahan manajemen keuangan mikro dengan transparansi digital bagi nasabah."
-               </p>
-            </div>
-          </div>
-        </section>
+        )}
       </div>
     </div>
   );
 };
 
-export default SystemSettings;
+export default NotificationsPage;

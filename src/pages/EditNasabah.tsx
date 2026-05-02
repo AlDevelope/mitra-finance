@@ -4,6 +4,8 @@ import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ArrowLeft, User, Package, Wallet, Calendar, MessageCircle, FileText, Save, RefreshCcw } from 'lucide-react';
 import { formatRupiah } from '../lib/formulas';
+import { logNotification } from '../lib/notifications';
+import { NotificationType } from '../types';
 
 const EditNasabah: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -64,16 +66,18 @@ const EditNasabah: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      // Re-calculate based on potentially new repayment amount
-      // Note: In real app, changing these mid-way might need careful logic
-      // but for this master prompt we update the core stats.
       await updateDoc(doc(db, 'nasabah', id), {
         ...form,
         total_hutang: totalHutang,
-        // We keep angsuran_terbayar as is, but update totals
-        sisa_hutang: (form.jumlah_angsuran - totalHutang/totalHutang) * form.rp_per_angsuran, // Placeholder logic
         updated_at: serverTimestamp()
       });
+
+      await logNotification(
+        'Data Nasabah Diperbarui',
+        `Informasi nasabah ${form.nama} telah berhasil diperbarui.`,
+        NotificationType.INFO
+      );
+
       navigate(`/nasabah/${id}`);
     } catch (err) {
       console.error(err);

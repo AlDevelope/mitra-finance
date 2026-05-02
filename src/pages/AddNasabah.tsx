@@ -3,8 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { ArrowLeft, User, Package, Wallet, Calendar, MessageCircle, FileText, Save } from 'lucide-react';
-import { NasabahStatus } from '../types';
+import { NasabahStatus, NotificationType } from '../types';
 import { formatRupiah } from '../lib/formulas';
+import { logNotification } from '../lib/notifications';
 
 const AddNasabah: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +49,13 @@ const AddNasabah: React.FC = () => {
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       });
+
+      await logNotification(
+        'Nasabah Baru Terdaftar',
+        `Berhasil mendaftarkan nasabah ${form.nama} untuk ${form.barang} dengan tenor ${form.jumlah_angsuran} minggu.`,
+        NotificationType.SUCCESS
+      );
+
       navigate(`/nasabah/${docRef.id}`);
     } catch (err) {
       console.error(err);

@@ -6,6 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useSettings } from '../hooks/useSettings';
 
+import { logNotification } from '../lib/notifications';
+import { NotificationType } from '../types';
+
 const SystemSettings: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
@@ -31,6 +34,11 @@ const SystemSettings: React.FC = () => {
     });
     
     if (success) {
+      await logNotification(
+        'Branding Diperbarui',
+        'Logo perusahaan berhasil diperbarui melalui pengaturan sistem.',
+        NotificationType.INFO
+      );
       alert('Logo berhasil diperbarui!');
     } else {
       alert('Gagal memperbarui logo.');
@@ -42,6 +50,7 @@ const SystemSettings: React.FC = () => {
     setLoading(true);
     try {
       const snap = await getDocs(collection(db, 'nasabah'));
+      const count = snap.size;
       const deletePromises = snap.docs.map(async (d) => {
         // Delete history subcollection
         const histSnap = await getDocs(collection(db, 'nasabah', d.id, 'history'));
@@ -52,6 +61,13 @@ const SystemSettings: React.FC = () => {
       });
       
       await Promise.all(deletePromises);
+
+      await logNotification(
+        'Pembersihan Data Nasabah',
+        `Seluruh data nasabah (${count} record) telah dihapus dari sistem.`,
+        NotificationType.ERROR
+      );
+
       alert('Semua data nasabah berhasil dihapus.');
       navigate('/dashboard');
     } catch (err) {
@@ -76,6 +92,13 @@ const SystemSettings: React.FC = () => {
         uang_tanah_baru: 0,
         total_keuntungan: 0
       });
+
+      await logNotification(
+        'Reset Saldo Keuangan',
+        'Seluruh saldo ringkasan keuangan telah direset menjadi Nol.',
+        NotificationType.WARNING
+      );
+
       alert('Data keuangan berhasil direset.');
     } catch (err) {
       console.error(err);

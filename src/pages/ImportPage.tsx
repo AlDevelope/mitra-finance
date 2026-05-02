@@ -11,9 +11,12 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
+import { logNotification } from '../lib/notifications';
+import { NotificationType } from '../types';
+
 const ImportPage: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth(); // Get profile here
+  const { profile } = useAuth(); 
   const [data, setData] = useState<any[]>([]);
   const [keuanganImport, setKeuanganImport] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -260,6 +263,13 @@ const ImportPage: React.FC = () => {
            });
         }
       }
+      
+      await logNotification(
+        'Import Data Berhasil',
+        `Berhasil mengimport ${data.length} data nasabah dan catatan keuangan terkait dari file Excel.`,
+        NotificationType.SUCCESS
+      );
+
       setSuccess(true);
       setTimeout(() => navigate('/nasabah'), 2000);
     } catch (err: any) {

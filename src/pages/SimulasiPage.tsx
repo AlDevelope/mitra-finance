@@ -125,7 +125,7 @@ const SimulasiPage: React.FC = () => {
               SIMULASI MINGGUAN (8X - 15X)
             </h3>
             <div className="glass rounded-[40px] overflow-hidden overflow-x-auto">
-               <table className="w-full text-left">
+               <table className="w-full text-left min-w-[500px]">
                   <thead className="bg-gray-50/50 dark:bg-white/5">
                     <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       <th className="px-6 py-4">Tenor</th>
@@ -137,10 +137,10 @@ const SimulasiPage: React.FC = () => {
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {weeklyTenors.map((t, i) => (
                       <tr key={i} className="hover:bg-gray-50/30 dark:hover:bg-white/5 transition-all font-bold">
-                        <td className="px-6 py-5 text-gray-900 dark:text-white">{t.label} <span className="text-[10px] text-gray-400 font-bold ml-1">{t.masa}</span></td>
-                        <td className="px-6 py-5 text-primary dark:text-sky-400">{(t.interest * 100)}%</td>
-                        <td className="px-6 py-5 text-accent text-lg font-black">{formatRupiah(calculateCicilan(pendanaan, t.interest, t.tenor))}</td>
-                        <td className="px-6 py-5 text-gray-500 dark:text-gray-400">{formatRupiah(calculateTotal(pendanaan, t.interest))}</td>
+                        <td className="px-6 py-5 text-gray-900 dark:text-white text-xs">{t.label} <span className="text-[9px] text-gray-400 font-bold ml-1">{t.masa}</span></td>
+                        <td className="px-6 py-5 text-primary dark:text-sky-400 text-xs">{(t.interest * 100)}%</td>
+                        <td className="px-6 py-5 text-accent text-base font-black">{formatRupiah(calculateCicilan(pendanaan, t.interest, t.tenor))}</td>
+                        <td className="px-6 py-5 text-gray-500 dark:text-gray-400 text-xs">{formatRupiah(calculateTotal(pendanaan, t.interest))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -154,7 +154,7 @@ const SimulasiPage: React.FC = () => {
               SIMULASI BULANAN (4X - 10X)
             </h3>
             <div className="glass rounded-[40px] overflow-hidden overflow-x-auto">
-               <table className="w-full text-left">
+               <table className="w-full text-left min-w-[500px]">
                   <thead className="bg-gray-50/50 dark:bg-white/5">
                     <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       <th className="px-6 py-4">Tenor</th>
@@ -166,10 +166,10 @@ const SimulasiPage: React.FC = () => {
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {monthlyTenors.map((t, i) => (
                       <tr key={i} className="hover:bg-gray-50/30 dark:hover:bg-white/5 transition-all font-bold">
-                        <td className="px-6 py-5 text-gray-900 dark:text-white">{t.label} <span className="text-[10px] text-gray-400 font-bold ml-1">{t.masa}</span></td>
-                        <td className="px-6 py-5 text-primary dark:text-sky-400">{(t.interest * 100)}%</td>
-                        <td className="px-6 py-5 text-accent text-lg font-black">{formatRupiah(calculateCicilan(pendanaan, t.interest, t.tenor))}</td>
-                        <td className="px-6 py-5 text-gray-500 dark:text-gray-400">{formatRupiah(calculateTotal(pendanaan, t.interest))}</td>
+                        <td className="px-6 py-5 text-gray-900 dark:text-white text-xs">{t.label} <span className="text-[9px] text-gray-400 font-bold ml-1">{t.masa}</span></td>
+                        <td className="px-6 py-5 text-primary dark:text-sky-400 text-xs">{(t.interest * 100)}%</td>
+                        <td className="px-6 py-5 text-accent text-base font-black">{formatRupiah(calculateCicilan(pendanaan, t.interest, t.tenor))}</td>
+                        <td className="px-6 py-5 text-gray-500 dark:text-gray-400 text-xs">{formatRupiah(calculateTotal(pendanaan, t.interest))}</td>
                       </tr>
                     ))}
                   </tbody>

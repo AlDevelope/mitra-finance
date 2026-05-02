@@ -17,6 +17,8 @@ import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
+import { logNotification } from '../lib/notifications';
+import { NotificationType } from '../types';
 
 const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
@@ -51,7 +53,14 @@ const KosankuPage: React.FC = () => {
   const handleUpdateModal = async () => {
     if (!settings) return;
     const ok = await updateSettings({ ...settings, kosan_modal: Number(newModalVal) });
-    if (ok) setIsEditingModal(false);
+    if (ok) {
+      await logNotification(
+        'Modal Kosan Diperbarui',
+        `Modal renovasi kosan diperbarui menjadi ${formatRupiah(Number(newModalVal))}.`,
+        NotificationType.INFO
+      );
+      setIsEditingModal(false);
+    }
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -63,6 +72,13 @@ const KosankuPage: React.FC = () => {
         keluar: Number(form.keluar),
         created_at: serverTimestamp()
       });
+      
+      await logNotification(
+        'Pemasukan Kosan Terdaftar',
+        `Berhasil mencatat data kosan bulan ${form.bulan}: Masuk ${formatRupiah(form.masuk)}, Keluar ${formatRupiah(form.keluar)}.`,
+        NotificationType.SUCCESS
+      );
+
       setShowAdd(false);
       setForm({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
       setLocalMasuk('0');
@@ -74,7 +90,16 @@ const KosankuPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus record ini?')) {
+      const recordToDelete = records.find(r => r.id === id);
       await deleteDoc(doc(db, 'kosanku', id));
+      
+      if (recordToDelete) {
+        await logNotification(
+          'Data Kosan Dihapus',
+          `Menghapus catatan kosan bulan ${recordToDelete.bulan}.`,
+          NotificationType.ERROR
+        );
+      }
     }
   };
 
@@ -261,26 +286,26 @@ const KosankuPage: React.FC = () => {
 
       <div className="glass rounded-[40px] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[600px]">
             <thead>
-              <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
-                <th className="px-8 py-5">Bulan</th>
-                <th className="px-8 py-5">Keluar</th>
-                <th className="px-8 py-5">Masuk</th>
-                <th className="px-8 py-5">Jumlah</th>
-                <th className="px-8 py-5 text-right">Aksi</th>
+              <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 dark:bg-slate-800/50 border-b dark:border-white/5">
+                <th className="px-6 py-5">Bulan</th>
+                <th className="px-6 py-5">Keluar</th>
+                <th className="px-6 py-5">Masuk</th>
+                <th className="px-6 py-5">Jumlah</th>
+                <th className="px-6 py-5 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
               {records.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-8 py-6 font-bold text-gray-900">{r.bulan}</td>
-                  <td className="px-8 py-6 font-bold text-danger">{formatRupiah(r.keluar)}</td>
-                  <td className="px-8 py-6 font-bold text-success">{formatRupiah(r.masuk)}</td>
-                  <td className="px-8 py-6 font-black text-primary">{formatRupiah(r.jumlah)}</td>
-                  <td className="px-8 py-6 text-right">
+                <tr key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-bold text-gray-900 dark:text-white text-sm">{r.bulan}</td>
+                  <td className="px-6 py-5 font-bold text-danger text-sm">{formatRupiah(r.keluar)}</td>
+                  <td className="px-6 py-5 font-bold text-success text-sm">{formatRupiah(r.masuk)}</td>
+                  <td className="px-6 py-5 font-black text-primary dark:text-sky-400 text-base">{formatRupiah(r.jumlah)}</td>
+                  <td className="px-6 py-5 text-right">
                     <button onClick={() => handleDelete(r.id)} className="p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-xl transition-all">
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>

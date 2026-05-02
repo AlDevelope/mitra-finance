@@ -21,6 +21,8 @@ import { useAuth } from '../context/AuthContext';
 import { NasabahShareCard } from '../components/NasabahShareCard';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 
+import { logNotification } from '../lib/notifications';
+
 const NasabahDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -114,6 +116,13 @@ const NasabahDetail: React.FC = () => {
           status: NasabahStatus.AKTIF,
           updated_at: serverTimestamp()
         });
+        
+        await logNotification(
+          'Pembayaran Diterima',
+          `Nasabah ${nasabah.nama} telah membayar angsuran ke-${nextAngsuran} sebesar ${formatRupiah(nasabah.rp_per_angsuran)}.`,
+          NotificationType.SUCCESS
+        );
+        
         setPayNote('');
       }
     } catch (error: any) {
@@ -128,9 +137,9 @@ const NasabahDetail: React.FC = () => {
     setPayLoading(true);
     try {
       // 1. Send notification
-      await createNotification(
+      await logNotification(
         'Nasabah Telah Lunas!',
-        `Nasabah ${nasabah.nama} untuk barang ${nasabah.barang} telah menyelesaikan seluruh angsuran.`,
+        `Nasabah ${nasabah.nama} untuk barang ${nasabah.barang} telah menyelesaikan seluruh angsuran dan dinyatakan Lunas.`,
         NotificationType.SUCCESS
       );
       
@@ -159,7 +168,15 @@ const NasabahDetail: React.FC = () => {
   const confirmDelete = async () => {
     if (!id || !nasabah) return;
     try {
+      const deletedName = nasabah.nama;
       await deleteDoc(doc(db, 'nasabah', id));
+      
+      await logNotification(
+        'Data Nasabah Dihapus',
+        `Data nasabah ${deletedName} telah dihapus dari sistem.`,
+        NotificationType.ERROR
+      );
+
       navigate('/nasabah');
     } catch (err: any) {
       alert(`Gagal menghapus nasabah: ${err.message}`);
@@ -350,40 +367,41 @@ const NasabahDetail: React.FC = () => {
               </h3>
             </div>
             
-            <div className="p-8">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                    <th className="pb-4">No</th>
-                    <th className="pb-4">Tanggal</th>
-                    <th className="pb-4">MGU Ke</th>
-                    <th className="pb-4">Jumlah</th>
-                    <th className="pb-4">Status</th>
-                    <th className="pb-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {history.map((record, i) => (
-                    <tr key={record.id} className="text-sm font-medium text-gray-700">
-                      <td className="py-4">{history.length - i}</td>
-                      <td className="py-4">{formatDisplayDate(record.tanggal_bayar)}</td>
-                      <td className="py-4 text-accent font-bold">MGU {record.angsuran_ke}</td>
-                      <td className="py-4 font-bold text-primary">{formatRupiah(record.jumlah_bayar)}</td>
-                      <td className="py-4">
-                        <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-full uppercase">VERIFIED</span>
-                      </td>
-                      <td className="py-4 text-right">
-                        <button 
-                          onClick={() => handleDeleteHistory(record)}
-                          disabled={deletingHistoryId === record.id}
-                          className="p-2 text-danger hover:bg-danger/10 rounded-lg transition-all disabled:opacity-30"
-                          title="Hapus Pembayaran"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+            <div className="p-4 md:p-8">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[500px]">
+                  <thead>
+                    <tr className="text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-white/5">
+                      <th className="pb-4">No</th>
+                      <th className="pb-4">Tanggal</th>
+                      <th className="pb-4">MGU Ke</th>
+                      <th className="pb-4">Jumlah</th>
+                      <th className="pb-4">Status</th>
+                      <th className="pb-4 text-right">Aksi</th>
                     </tr>
-                  ))}
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                    {history.map((record, i) => (
+                      <tr key={record.id} className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <td className="py-4">{history.length - i}</td>
+                        <td className="py-4 whitespace-nowrap">{formatDisplayDate(record.tanggal_bayar)}</td>
+                        <td className="py-4 text-accent font-bold">MGU {record.angsuran_ke}</td>
+                        <td className="py-4 font-bold text-primary dark:text-white">{formatRupiah(record.jumlah_bayar)}</td>
+                        <td className="py-4">
+                          <span className="bg-success/10 text-success text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">VERIFIED</span>
+                        </td>
+                        <td className="py-4 text-right">
+                          <button 
+                            onClick={() => handleDeleteHistory(record)}
+                            disabled={deletingHistoryId === record.id}
+                            className="p-2 text-danger hover:bg-danger/10 rounded-lg transition-all disabled:opacity-30"
+                            title="Hapus Pembayaran"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   {history.length === 0 && (
                     <tr>
                       <td colSpan={5} className="py-10 text-center text-gray-400 font-medium">Belum ada riwayat pembayaran</td>
@@ -392,8 +410,9 @@ const NasabahDetail: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
+      </div>
 
         <div className="space-y-6">
           <section className="glass p-8 rounded-[40px] bg-primary text-white shadow-xl relative overflow-hidden">
