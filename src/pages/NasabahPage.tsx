@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNasabah } from '../hooks/useNasabah';
 import { formatRupiah } from '../lib/formulas';
-import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { NasabahStatus } from '../types';
+import { NasabahStatus, NotificationType } from '../types';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
+import { doc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { logNotification } from '../lib/notifications';
 
 const NasabahPage: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -15,6 +19,8 @@ const NasabahPage: React.FC = () => {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('SEMUA');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const filteredList = nasabahList.filter(n => {
     const matchesSearch = n.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -44,31 +50,379 @@ const NasabahPage: React.FC = () => {
     XLSX.writeFile(wb, `Data_Nasabah_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const handleDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'nasabah'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      await logNotification(
+        'Database Nasabah Dibersihkan',
+        'Seluruh data nasabah telah dihapus dari sistem.',
+        NotificationType.ERROR
+      );
+      
+      setShowDeleteAllModal(false);
+      alert('Seluruh data nasabah berhasil dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus data: ${err.message}`);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   if (loading) return <div>Loading data nasabah...</div>;
 
   return (
     <div className="space-y-6">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Seluruh Nasabah"
+        message="Hati-hati! Tindakan ini akan menghapus SELURUH data nasabah secara permanen. Pastikan Anda sudah membackup data ke Excel jika diperlukan."
+      />
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Daftar Nasabah</h2>
           <p className="text-gray-500">Kelola unit angsuran dan pembayaran</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
            {isAdmin && (
              <>
-               <Link to="/nasabah/tambah" className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20">
-                 <Plus className="w-5 h-5" />
+               <button 
+                 onClick={() => setShowDeleteAllModal(true)}
+                 className="bg-red-50 text-red-500 px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
+               >
+                 <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                 Hapus Semua
+               </button>
+               <Link to="/nasabah/tambah" className="bg-primary text-white px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20 text-[10px] md:text-sm">
+                 <Plus className="w-4 h-4 md:w-5 md:h-5" />
                  Tambah Nasabah
                </Link>
-               <Link to="/import" className="bg-white text-primary border border-gray-200 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm">
-                 <FileSpreadsheet className="w-5 h-5" />
+               <Link to="/import" className="bg-white text-primary border border-gray-200 px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-gray-50 transition-all shadow-sm text-[10px] md:text-sm">
+                 <FileSpreadsheet className="w-4 h-4 md:w-5 md:h-5" />
                  Import Excel
                </Link>
                <button 
                  onClick={handleExport}
-                 className="bg-accent text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-light transition-all shadow-lg shadow-accent/20"
+                 className="bg-accent text-white px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-sm"
                >
-                 <Download className="w-5 h-5" />
+                 <Download className="w-4 h-4 md:w-5 md:h-5" />
+                 Export Excel
+               </button>
+             </>
+           )}
+        </div>
+      </header>
+
+      <div className="glass p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Cari nama nasabah atau barang..." 
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+          {['SEMUA', 'AKTIF', 'LUNAS', 'MENUNGGAK'].map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                filterStatus === s ? "bg-white text-primary shadow-sm" : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+          <button 
+            onClick={() => setView('grid')}
+            className={cn("p-2 rounded-lg transition-all", view === 'grid' ? "bg-white text-primary shadow-sm" : "text-gray-400")}
+          >
+            <Grid className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setView('list')}
+            className={cn("p-2 rounded-lg transition-all", view === 'list' ? "bg-white text-primary shadow-sm" : "text-gray-400")}
+          >
+            <ListIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {view === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+          {filteredList.map((nasabah, i) => (
+            <motion.div
+              key={nasabah.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.05 }}
+              className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl group hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="flex justify-between items-start mb-3 md:mb-4">
+                <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary/10 flex items-center justify-center font-bold text-primary text-sm md:text-xl shrink-0">
+                  {nasabah.nama.charAt(0)}
+                </div>
+                <div className={cn(
+                  "px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[8px] md:text-[10px] font-bold tracking-wider uppercase",
+                  nasabah.status === NasabahStatus.LUNAS ? "bg-success/10 text-success" :
+                  nasabah.status === NasabahStatus.MENUNGGAK ? "bg-danger/10 text-danger" :
+                  "bg-primary/10 text-primary"
+                )}>
+                  {nasabah.status}
+                </div>
+              </div>
+              
+              <h3 className="font-bold text-xs md:text-xl mb-0.5 md:mb-1 truncate">{nasabah.nama}</h3>
+              <p className="text-gray-500 text-[9px] md:text-sm mb-3 md:mb-4 flex items-center gap-1.5 truncate">
+                <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-accent shrink-0" />
+                {nasabah.barang}
+              </p>
+
+              <div className="space-y-3 md:space-y-4">
+                <div className="hidden md:block">
+                  <div className="flex justify-between text-xs font-bold mb-1.5">
+                    <span className="text-gray-400">Progress Pembayaran</span>
+                    <span className="text-primary">{nasabah.progress_persen}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-accent"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${nasabah.progress_persen}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4 py-2 md:py-4 border-y border-gray-50">
+                  <div className="md:block flex justify-between items-center">
+                    <p className="text-[7px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Sisa MGU</p>
+                    <p className="font-bold text-[10px] md:text-base text-gray-700 leading-none">{nasabah.sisa_angsuran} <span className="text-[7px] md:text-[10px] text-gray-400">MGU</span></p>
+                  </div>
+                  <div className="md:text-right md:block flex justify-between items-center">
+                    <p className="text-[7px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Sisa Hutang</p>
+                    <p className="font-bold text-[10px] md:text-base text-danger leading-none">{formatRupiah(nasabah.sisa_hutang)}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-1.5 md:gap-2">
+                  <Link to={`/nasabah/${nasabah.id}`} className="flex-1 bg-primary text-white py-1.5 md:py-2.5 rounded-lg md:rounded-xl font-bold text-[9px] md:text-sm flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all">
+                    <Eye className="w-3 h-3 md:w-4 md:h-4" /> Detail
+                  </Link>
+                  <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="w-8 h-8 md:w-12 md:h-10 bg-green-500 text-white rounded-lg md:rounded-xl flex items-center justify-center hover:bg-green-600 transition-all shrink-0">
+                    <MessageCircle className="w-3.5 h-3.5 md:w-5 md:h-5" />
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="glass rounded-3xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-white/5">
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Nama / Barang</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-center">Status</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">MGU</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Sisa Hutang</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Progress</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {filteredList.map((nasabah) => (
+                  <tr key={nasabah.id} className="hover:bg-gray-50/30 dark:hover:bg-white/5 transition-colors group">
+                    <td className="px-4 lg:px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center font-bold text-primary text-xs shrink-0">
+                          {nasabah.nama.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs lg:text-sm truncate max-w-[120px] lg:max-w-none">{nasabah.nama}</p>
+                          <p className="text-[10px] text-gray-400 truncate max-w-[120px] lg:max-w-none">{nasabah.barang}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-center">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-bold inline-block",
+                        nasabah.status === NasabahStatus.LUNAS ? "bg-success/10 text-success" :
+                        nasabah.status === NasabahStatus.MENUNGGAK ? "bg-danger/10 text-danger" :
+                        "bg-primary/10 text-primary"
+                      )}>
+                        {nasabah.status}
+                      </span>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4">
+                      <p className="text-xs font-bold">{nasabah.angsuran_terbayar}/{nasabah.jumlah_angsuran}</p>
+                      <p className="text-[9px] text-gray-400 uppercase tracking-tighter">Sisa {nasabah.sisa_angsuran}</p>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-xs font-bold text-danger">{formatRupiah(nasabah.sisa_hutang)}</td>
+                    <td className="px-4 lg:px-6 py-4">
+                      <div className="w-16 lg:w-24">
+                         <div className="flex justify-between text-[9px] font-bold mb-0.5">
+                            <span className="text-primary">{nasabah.progress_persen}%</span>
+                         </div>
+                         <div className="h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-accent" style={{ width: `${nasabah.progress_persen}%` }} />
+                         </div>
+                      </div>
+                    </td>
+                    <td className="px-4 lg:px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Link to={`/nasabah/${nasabah.id}`} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all border border-primary/5">
+                           <Eye className="w-4 h-4" />
+                         </Link>
+                         <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="p-2 bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400 rounded-lg hover:bg-green-200 transition-all border border-green-500/5">
+                           <MessageCircle className="w-4 h-4" />
+                         </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default NasabahPage;
+import React, { useState } from 'react';
+import { useNasabah } from '../hooks/useNasabah';
+import { formatRupiah } from '../lib/formulas';
+import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { NasabahStatus, NotificationType } from '../types';
+import { Link } from 'react-router-dom';
+import { cn } from '../lib/utils';
+import { useAuth } from '../context/AuthContext';
+import * as XLSX from 'xlsx';
+import { doc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { logNotification } from '../lib/notifications';
+
+const NasabahPage: React.FC = () => {
+  const { isAdmin } = useAuth();
+  const { data: nasabahList, loading } = useNasabah();
+  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('SEMUA');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  const filteredList = nasabahList.filter(n => {
+    const matchesSearch = n.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          n.barang.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterStatus === 'SEMUA' || n.status === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleExport = () => {
+    const exportData = filteredList.map(n => ({
+      'Nama': n.nama,
+      'Sudah di terima': n.barang,
+      'Uang Muka': n.uang_muka,
+      'Jumlah Angsuran': n.jumlah_angsuran,
+      'Rp per Angsuran': n.rp_per_angsuran,
+      'Angsuran Terbayar': n.angsuran_terbayar,
+      'Sisa Angsuran': n.sisa_angsuran,
+      'Sisa Hutang': n.sisa_hutang,
+      'WhatsApp': n.whatsapp_number,
+      'Status': n.status,
+      'Catatan': n.catatan
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Nasabah');
+    XLSX.writeFile(wb, `Data_Nasabah_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'nasabah'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      await logNotification(
+        'Database Nasabah Dibersihkan',
+        'Seluruh data nasabah telah dihapus dari sistem.',
+        NotificationType.ERROR
+      );
+      
+      setShowDeleteAllModal(false);
+      alert('Seluruh data nasabah berhasil dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus data: ${err.message}`);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
+  if (loading) return <div>Loading data nasabah...</div>;
+
+  return (
+    <div className="space-y-6">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Seluruh Nasabah"
+        message="Hati-hati! Tindakan ini akan menghapus SELURUH data nasabah secara permanen. Pastikan Anda sudah membackup data ke Excel jika diperlukan."
+      />
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Daftar Nasabah</h2>
+          <p className="text-gray-500">Kelola unit angsuran dan pembayaran</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+           {isAdmin && (
+             <>
+               <button 
+                 onClick={() => setShowDeleteAllModal(true)}
+                 className="bg-red-50 text-red-500 px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
+               >
+                 <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                 Hapus Semua
+               </button>
+               <Link to="/nasabah/tambah" className="bg-primary text-white px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20 text-[10px] md:text-sm">
+                 <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                 Tambah Nasabah
+               </Link>
+               <Link to="/import" className="bg-white text-primary border border-gray-200 px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-gray-50 transition-all shadow-sm text-[10px] md:text-sm">
+                 <FileSpreadsheet className="w-4 h-4 md:w-5 md:h-5" />
+                 Import Excel
+               </Link>
+               <button 
+                 onClick={handleExport}
+                 className="bg-accent text-white px-3 md:px-5 py-2 md:py-2.5 rounded-lg md:rounded-xl font-bold flex items-center gap-1.5 md:gap-2 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-sm"
+               >
+                 <Download className="w-4 h-4 md:w-5 md:h-5" />
                  Export Excel
                </button>
              </>
