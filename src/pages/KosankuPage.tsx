@@ -136,7 +136,8 @@ const KosankuPage: React.FC = () => {
     const terkumpul = records.reduce((acc, curr) => acc + (curr.masuk || 0), 0);
     const pengeluaran = records.reduce((acc, curr) => acc + (curr.keluar || 0), 0);
     const modalRenov = settings?.kosan_modal || 15000000;
-    return { terkumpul, pengeluaran, modalRenov, sisa: modalRenov - terkumpul + pengeluaran };
+    const uangBersih = terkumpul - pengeluaran;
+    return { terkumpul, pengeluaran, modalRenov, uangBersih, sisa: modalRenov - uangBersih };
   }, [records, settings?.kosan_modal]);
 
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data kosan...</div>;
@@ -162,12 +163,18 @@ const KosankuPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="glass p-8 rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-xl shadow-green-500/20">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
           <TrendingUp className="w-6 h-6 mb-4 text-white/50" />
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Pemasukan Terkumpul</p>
           <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.terkumpul)}</h3>
+        </div>
+        <div className="glass p-8 rounded-[40px] bg-emerald-600 text-white relative overflow-hidden shadow-xl shadow-emerald-600/20">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
+          <Wallet className="w-6 h-6 mb-4 text-white/50" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Uang Bersih (Net)</p>
+          <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.uangBersih)}</h3>
         </div>
         <div className="glass p-8 rounded-[40px] bg-sky-500 text-white relative overflow-hidden shadow-xl shadow-sky-500/20">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
@@ -204,7 +211,7 @@ const KosankuPage: React.FC = () => {
         </div>
         <div className="glass p-8 rounded-[40px] bg-accent text-white relative overflow-hidden shadow-xl shadow-accent/20">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8" />
-          <Wallet className="w-6 h-6 mb-4 text-white/50" />
+          <TrendingUp className="w-6 h-6 mb-4 text-white/50 rotate-180" />
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">Sisa Belum Kembali</p>
           <h3 className="text-2xl font-black mt-1">{formatRupiah(totals.sisa)}</h3>
         </div>
