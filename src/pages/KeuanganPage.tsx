@@ -117,7 +117,13 @@ const KeuanganPage: React.FC = () => {
     if (!settings) return;
 
     let newSettings: Settings;
-    if (id === 'uang_tanah_lama' || id === 'uang_tanah_baru') {
+    const isCoreField = [
+      'uang_cash', 'uang_nasabah', 'uang_bank_neo', 'uang_dipinjamkan', 
+      'total_keuntungan', 'uang_tanah_lama', 'uang_tanah_baru', 
+      'uang_stokbit', 'uang_renov'
+    ].includes(id);
+
+    if (isCoreField) {
       newSettings = {
         ...settings,
         category_labels: {
@@ -173,15 +179,15 @@ const KeuanganPage: React.FC = () => {
   if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
   const coreFields = [
-    { key: 'uang_cash', label: 'Uang Cash', icon: Wallet },
-    { key: 'uang_nasabah', label: 'Uang Nasabah (Nasabah)', icon: Landmark, readonly: true },
-    { key: 'uang_bank_neo', label: 'Uang Bank Neo', icon: Landmark, readonly: true },
-    { key: 'uang_dipinjamkan', label: 'Uang yang Dipinjamkan', icon: DollarSign, readonly: true },
-    { key: 'total_keuntungan', label: 'Total Untung', icon: TrendingUp, readonly: true },
+    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, canEdit: true },
+    { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, readonly: true, canEdit: true },
+    { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, readonly: true, canEdit: true },
+    { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang yang Dipinjamkan', icon: DollarSign, readonly: true, canEdit: true },
+    { key: 'total_keuntungan', label: settings?.category_labels?.total_keuntungan || 'Total Untung', icon: TrendingUp, readonly: true, canEdit: true },
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, canEdit: true },
-    { key: 'uang_stokbit', label: 'Uang Stokbit (M3110)', icon: TrendingUp },
-    { key: 'uang_renov', label: 'Uang Renov', icon: Hammer },
+    { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit (M3110)', icon: TrendingUp, canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({
@@ -196,22 +202,22 @@ const KeuanganPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 md:mb-12">
         <div className="space-y-1">
           <h2 className="text-xl md:text-3xl font-black tracking-tight text-primary dark:text-sky-400">Mitra Finance 99</h2>
           <p className="text-[10px] md:text-base text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
-        <div className="flex flex-wrap gap-4">
-          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-6 py-4 rounded-[20px] font-bold text-sm flex items-center gap-2 hover:bg-gray-200 transition-all">
-            <Upload className="w-4 h-4" />
+        <div className="flex flex-wrap gap-2 md:gap-4">
+          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-[20px] font-bold text-[10px] md:text-sm flex items-center gap-2 hover:bg-gray-200 transition-all">
+            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
             Impor File
           </Link>
           <button 
             type="button"
             onClick={() => setIsAddingCategory(true)}
-            className="bg-accent text-white px-8 py-4 rounded-[24px] font-black text-sm flex items-center gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
+            className="flex-1 sm:flex-none bg-accent text-white px-4 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 md:w-5 md:h-5" />
             Tambah Kotak
           </button>
         </div>
@@ -285,12 +291,12 @@ const KeuanganPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <label className="text-[7px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{field.label}</label>
+                    <label className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">{field.label}</label>
                     {field.canEdit && (
                       <button 
                         type="button"
                         onClick={() => startEditLabel(field.key, field.label)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-accent transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 dark:text-gray-500 hover:text-accent transition-all"
                       >
                         <Edit2 className="w-2.5 h-2.5" />
                       </button>
@@ -299,14 +305,14 @@ const KeuanganPage: React.FC = () => {
                 )}
                 
                 <input
-                  type="text"
-                  readOnly={field.readonly}
-                  value={formatRupiah(form?.[field.key] || 0)}
-                  onChange={(e) => handleChange(field.key, e.target.value)}
-                  className={cn(
-                    "w-full bg-transparent text-xs sm:text-sm md:text-2xl font-black text-gray-900 dark:text-white outline-none border-b-2 border-transparent transition-all truncate",
-                    field.readonly ? "cursor-default opacity-60" : "focus:border-accent"
-                  )}
+                   type="text"
+                   readOnly={field.readonly}
+                   value={formatRupiah(form?.[field.key] || 0)}
+                   onChange={(e) => handleChange(field.key, e.target.value)}
+                   className={cn(
+                     "w-full bg-transparent text-[10px] sm:text-xs md:text-2xl font-black text-slate-900 dark:text-slate-100 outline-none border-b-2 border-transparent transition-all truncate",
+                     field.readonly ? "cursor-default opacity-70" : "focus:border-accent"
+                   )}
                 />
               </div>
               <div className={cn(
@@ -319,7 +325,7 @@ const KeuanganPage: React.FC = () => {
           </div>
         ))}
 
-        <div className="md:col-span-2 lg:col-span-3 flex justify-end items-center gap-4 md:gap-6 sticky bottom-4 z-20 md:relative md:bottom-0 mt-8">
+        <div className="md:col-span-2 lg:col-span-3 flex justify-end items-center gap-4 md:gap-6 sticky bottom-4 z-20 md:relative md:bottom-0 mt-4 md:mt-8">
           {success && (
             <motion.p 
               initial={{ opacity: 0, x: 20 }}
@@ -332,7 +338,7 @@ const KeuanganPage: React.FC = () => {
           <button
             type="submit"
             disabled={saving}
-            className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 bg-accent text-white rounded-[20px] md:rounded-[24px] font-black text-xs md:text-base shadow-2xl shadow-accent/30 hover:scale-[1.05] active:scale-[0.95] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+            className="w-full sm:w-auto px-6 md:px-12 py-3.5 md:py-5 bg-accent text-white rounded-xl md:rounded-[24px] font-black text-[10px] md:text-base shadow-2xl shadow-accent/30 hover:scale-[1.05] active:scale-[0.95] transition-all disabled:opacity-50 flex items-center justify-center gap-2 md:gap-3"
           >
             {saving ? 'Menyimpan...' : 'TERAPKAN PERUBAHAN'}
           </button>

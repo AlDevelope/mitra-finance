@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Role } from '../types';
 import { Menu, X, LayoutDashboard, Users, Wallet, Home, Building2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useSettings } from '../hooks/useSettings';
 
@@ -14,21 +15,33 @@ export const Layout: React.FC = () => {
   const location = useLocation();
 
   const [scrolled, setScrolled] = useState(false);
+  const [showNavbar, setShowNavbar] = useState(true);
+  const [lastScrollTop, setLastScrollTop] = useState(0);
   const mainRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (mainRef.current) {
-        setScrolled(mainRef.current.scrollTop > 20);
+        const scrollTop = mainRef.current.scrollTop;
+        setScrolled(scrollTop > 20);
+        
+        // Hide on scroll down, show on scroll up
+        if (scrollTop > lastScrollTop && scrollTop > 100) {
+          setShowNavbar(false);
+        } else {
+          setShowNavbar(true);
+        }
+        setLastScrollTop(scrollTop);
       }
     };
     const main = mainRef.current;
     main?.addEventListener('scroll', handleScroll);
     return () => main?.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [lastScrollTop]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setShowNavbar(true); // Always show on route change
   }, [location]);
 
   if (loading) {
@@ -76,16 +89,20 @@ export const Layout: React.FC = () => {
             : "bg-white/95 dark:bg-slate-900/95 border-b border-transparent py-4"
         )}>
            <div className="flex items-center gap-3">
-              {settings?.logo_url ? (
-                <img src={settings.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-xl" />
-              ) : (
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Building2 className="w-6 h-6 text-white" />
-                </div>
-              )}
+              <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl" onError={(e) => {
+                // Fallback if logo.png doesn't exist
+                (e.target as HTMLImageElement).src = settings?.logo_url || '';
+                if (!settings?.logo_url) {
+                   (e.target as HTMLImageElement).style.display = 'none';
+                   (e.target as HTMLImageElement).parentElement?.querySelector('.logo-fallback')?.classList.remove('hidden');
+                }
+              }} />
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 logo-fallback hidden">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
               <div className="flex flex-col">
-                <span className="font-black text-primary leading-tight text-sm">Mitra Finance 99</span>
-                <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Digital System</span>
+                <span className="font-black text-primary leading-tight text-[11px] md:text-sm">Mitra Finance 99</span>
+                <span className="text-[7px] md:text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Digital System</span>
               </div>
            </div>
            <button onClick={toggleMobileMenu} className="p-2.5 bg-gray-50 text-gray-500 rounded-2xl hover:bg-gray-100 active:scale-95 transition-all">
@@ -98,23 +115,38 @@ export const Layout: React.FC = () => {
         </div>
 
         {/* Mobile Bottom Bar */}
-        <div className="xl:hidden fixed bottom-6 left-6 right-6 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-white/5 px-6 py-4 flex justify-between items-center rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden">
-           <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 pointer-events-none" />
-           {[
-             { icon: LayoutDashboard, path: '/dashboard' },
-             { icon: Users, path: '/nasabah' },
-             { icon: Wallet, path: '/keuangan' },
-             { icon: Home, path: '/kosanku' }
-           ].map((item, i) => (
-             <NavLink 
-               key={i} 
-               to={item.path} 
-               className={({ isActive }) => `relative z-10 p-4 rounded-2xl transition-all duration-300 ${isActive ? 'bg-accent text-white shadow-xl shadow-accent/20 scale-110' : 'text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5'}`}
-             >
-               <item.icon className="w-6 h-6" />
-             </NavLink>
-           ))}
-        </div>
+        <AnimatePresence>
+          {showNavbar && (
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="xl:hidden fixed bottom-6 left-6 right-6 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-white/5 px-6 py-2 flex justify-between items-center rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden"
+            >
+               <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 pointer-events-none" />
+               {[
+                 { icon: LayoutDashboard, path: '/dashboard' },
+                 { icon: Users, path: '/nasabah' },
+                 { icon: Wallet, path: '/keuangan' },
+                 { icon: Home, path: '/kosanku' }
+               ].map((item, i) => (
+                 <NavLink 
+                   key={i} 
+                   to={item.path} 
+                   className={({ isActive }) => cn(
+                     "relative z-10 p-3 rounded-2xl transition-all duration-300",
+                     isActive 
+                       ? "bg-accent text-white shadow-xl shadow-accent/20 scale-110" 
+                       : "text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-white"
+                   )}
+                 >
+                   <item.icon className="w-5 h-5 md:w-6 md:h-6" />
+                 </NavLink>
+               ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
