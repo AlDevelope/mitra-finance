@@ -7,7 +7,9 @@ import {
   addDoc, 
   serverTimestamp, 
   deleteDoc, 
-  doc 
+  doc, 
+  getDocs, 
+  writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { AngsuranLog, NotificationType } from '../types';
@@ -16,14 +18,18 @@ import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, Trend
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { logNotification } from '../lib/notifications';
+import { useAuth } from '../context/AuthContext';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
 
 const AngsuranLogPage: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [logs, setLogs] = useState<AngsuranLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
   const [localMasuk, setLocalMasuk] = useState('0');
   const [localKeluar, setLocalKeluar] = useState('0');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'angsuran_logs'), orderBy('tanggal', 'asc'), orderBy('created_at', 'asc'));
@@ -90,6 +96,28 @@ const AngsuranLogPage: React.FC = () => {
           NotificationType.ERROR
         );
       }
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'angsuran_logs'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      await logNotification(
+        'Histori Log Dibersihkan',
+        'Seluruh data histori keuangan angsuran telah dihapus.',
+        NotificationType.ERROR
+      );
+      
+      setShowDeleteAllModal(false);
+      alert('Seluruh data histori angsuran telah dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus data: ${err.message}`);
     }
   };
 
@@ -190,12 +218,27 @@ const AngsuranLogPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Seluruh Histori Log"
+        message="Hati-hati! Tindakan ini akan menghapus SELURUH histori catatan keuangan angsuran secara permanen dari server."
+      />
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
           <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {isAdmin && (
+            <button 
+              onClick={() => setShowDeleteAllModal(true)}
+              className="px-6 py-4 bg-red-50 text-red-500 border border-red-100 rounded-[24px] font-bold text-sm hover:bg-red-100 transition-all flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Hapus Semua
+            </button>
+          )}
           <label className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-5 h-5" /> Import Angsuran
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />

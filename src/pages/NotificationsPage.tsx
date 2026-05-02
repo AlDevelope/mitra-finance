@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, limit, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Notification, NotificationType } from '../types';
 import { Bell, Trash2, CheckCircle2, AlertTriangle, AlertCircle, Info, Clock, Check } from 'lucide-react';
@@ -7,10 +7,13 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { logNotification } from '../lib/notifications';
 
 const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'notifications'), orderBy('created_at', 'desc'), limit(100));
@@ -30,6 +33,22 @@ const NotificationsPage: React.FC = () => {
     const unread = notifications.filter(n => !n.is_read);
     for (const notif of unread) {
       await updateDoc(doc(db, 'notifications', notif.id), { is_read: true });
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'notifications'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      setShowDeleteAllModal(false);
+      alert('Seluruh pemberitahuan telah dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus pemberitahuan: ${err.message}`);
     }
   };
 
@@ -56,6 +75,13 @@ const NotificationsPage: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={deleteAllNotifications}
+        title="Hapus Seluruh Pemberitahuan"
+        message="Tindakan ini akan menghapus semua riwayat pemberitahuan secara permanen."
+      />
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-primary/10 rounded-[30px] flex items-center justify-center shadow-inner">
@@ -67,14 +93,24 @@ const NotificationsPage: React.FC = () => {
           </div>
         </div>
         
-        {notifications.some(n => !n.is_read) && (
-          <button 
-            onClick={markAllAsRead}
-            className="px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 rounded-2xl text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2"
-          >
-            <Check className="w-4 h-4" /> Tandai Semua Dibaca
-          </button>
-        )}
+        <div className="flex gap-3">
+          {notifications.length > 0 && (
+            <button 
+              onClick={() => setShowDeleteAllModal(true)}
+              className="px-6 py-4 bg-red-50 text-red-500 border border-red-100 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-red-100 transition-all flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Hapus Semua
+            </button>
+          )}
+          {notifications.some(n => !n.is_read) && (
+            <button 
+              onClick={markAllAsRead}
+              className="px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 rounded-2xl text-xs font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400 hover:bg-gray-50 transition-all flex items-center gap-2"
+            >
+              <Check className="w-4 h-4" /> Tandai Semua Dibaca
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="space-y-4">

@@ -7,7 +7,9 @@ import {
   addDoc, 
   serverTimestamp, 
   deleteDoc, 
-  doc 
+  doc, 
+  getDocs, 
+  writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { KosanRecord } from '../types';
@@ -19,6 +21,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useAuth } from '../context/AuthContext';
 import { logNotification } from '../lib/notifications';
 import { NotificationType } from '../types';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
 
 const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
@@ -31,6 +34,7 @@ const KosankuPage: React.FC = () => {
   const [localKeluar, setLocalKeluar] = useState('0');
   const [isEditingModal, setIsEditingModal] = useState(false);
   const [newModalVal, setNewModalVal] = useState(settings?.kosan_modal?.toString() || '15000000');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'kosanku'), orderBy('created_at', 'asc'));
@@ -103,6 +107,28 @@ const KosankuPage: React.FC = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'kosanku'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      await logNotification(
+        'Database Kosanku Dibersihkan',
+        'Seluruh data pemasukan/pengeluaran kosan telah dihapus.',
+        NotificationType.ERROR
+      );
+      
+      setShowDeleteAllModal(false);
+      alert('Seluruh data kosan telah dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus data: ${err.message}`);
+    }
+  };
+
   const [isImporting, setImporting] = useState(false);
 
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,12 +195,27 @@ const KosankuPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Seluruh Data Kosan"
+        message="Hati-hati! Tindakan ini akan menghapus SELURUH catatan pemasukan dan pengeluaran kosan dari server secara permanen."
+      />
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Uang Kosan</h2>
           <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
+          {isAdmin && (
+            <button 
+              onClick={() => setShowDeleteAllModal(true)}
+              className="px-6 py-4 bg-red-50 text-red-500 border border-red-100 rounded-[24px] font-bold text-sm hover:bg-red-100 transition-all flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Hapus Semua
+            </button>
+          )}
           <label className="flex items-center gap-2 px-6 py-4 bg-white border border-gray-100 text-gray-600 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-5 h-5" /> Import XLSX
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
