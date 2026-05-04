@@ -16,32 +16,33 @@ export const Layout: React.FC = () => {
 
   const [scrolled, setScrolled] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
-  const [lastScrollTop, setLastScrollTop] = useState(0);
+  const scrollPosRef = React.useRef(0);
   const mainRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       if (mainRef.current) {
         const scrollTop = mainRef.current.scrollTop;
+        const lastScrollTop = scrollPosRef.current;
         const scrollDelta = scrollTop - lastScrollTop;
         
         setScrolled(scrollTop > 20);
         
-        // Hide on scroll down, show on scroll up (with a small threshold for smoother feel)
+        // Hide on scroll down, show on scroll up (with a threshold)
         if (Math.abs(scrollDelta) > 10) {
           if (scrollTop > lastScrollTop && scrollTop > 150) {
             setShowNavbar(false);
           } else {
             setShowNavbar(true);
           }
-          setLastScrollTop(scrollTop);
+          scrollPosRef.current = scrollTop;
         }
       }
     };
     const main = mainRef.current;
-    main?.addEventListener('scroll', handleScroll);
+    main?.addEventListener('scroll', handleScroll, { passive: true });
     return () => main?.removeEventListener('scroll', handleScroll);
-  }, [lastScrollTop]);
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);

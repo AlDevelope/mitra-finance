@@ -96,22 +96,22 @@ const NasabahPage: React.FC = () => {
              <>
                <button 
                  onClick={() => setShowDeleteAllModal(true)}
-                 className="bg-red-50 text-red-500 px-3 py-2.5 rounded-xl font-black flex items-center justify-center gap-1.5 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-xs"
+                 className="bg-red-50 text-red-500 px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
                >
                  <Trash2 className="w-3.5 h-3.5" />
                  Hapus Semua
                </button>
-               <Link to="/nasabah/tambah" className="bg-primary text-white px-3 py-2.5 rounded-xl font-black flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20 text-[10px] md:text-xs">
+               <Link to="/nasabah/tambah" className="bg-primary text-white px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20 text-[10px] md:text-sm">
                  <Plus className="w-4 h-4" />
                  Tambah
                </Link>
-               <Link to="/import" className="bg-white text-primary border border-gray-200 px-3 py-2.5 rounded-xl font-black flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all shadow-sm text-[10px] md:text-xs">
+               <Link to="/import" className="bg-white text-primary border border-gray-200 px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all shadow-sm text-[10px] md:text-sm">
                  <FileSpreadsheet className="w-4 h-4" />
                  Import
                </Link>
                <button 
                  onClick={handleExport}
-                 className="bg-accent text-white px-3 py-2.5 rounded-xl font-black flex items-center justify-center gap-1.5 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-xs"
+                 className="bg-accent text-white px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-sm"
                >
                  <Download className="w-4 h-4" />
                  Export

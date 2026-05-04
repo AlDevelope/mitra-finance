@@ -214,7 +214,7 @@ const Dashboard: React.FC = () => {
             <div className={cn("absolute top-0 right-0 w-12 h-12 md:w-20 md:h-20 -mr-3 -mt-3 md:-mr-6 md:-mt-6 rounded-full opacity-10 transition-transform group-hover:scale-110", stat.color)} />
             <div className="flex flex-col md:flex-row md:items-start justify-between relative z-10 gap-1 md:gap-0">
               <div className="order-2 md:order-1">
-                <p className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
+                <p className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest truncate">{stat.label}</p>
                 <h3 className="text-[11px] md:text-xl font-black mt-0.5 md:mt-1 truncate text-slate-900 dark:text-slate-100">
                   {stat.isCurrency === false ? stat.value : formatRupiah(stat.value)}
                 </h3>

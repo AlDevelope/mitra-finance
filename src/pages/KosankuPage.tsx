@@ -212,18 +212,18 @@ const KosankuPage: React.FC = () => {
           {isAdmin && (
             <button 
               onClick={() => setShowDeleteAllModal(true)}
-              className="px-3 md:px-6 py-2 md:py-4 bg-red-50 text-red-500 border border-red-100 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-red-100 transition-all flex items-center justify-center gap-1.5 md:gap-2"
+              className="px-3 md:px-6 py-2 md:py-3 bg-red-50 text-red-500 border border-red-100 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-red-100 transition-all flex items-center justify-center gap-1.5 md:gap-2"
             >
               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> Hapus Semua
             </button>
           )}
-          <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-4 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
+          <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-4 h-4 md:w-5 md:h-5" /> Import XLSX
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
           </label>
           <button 
             onClick={() => setShowAdd(!showAdd)}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-8 py-2 md:py-4 bg-accent text-white rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-8 py-2 md:py-3 bg-accent text-white rounded-xl md:rounded-[24px] font-black text-[10px] md:text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" /> Tambah Data
           </button>

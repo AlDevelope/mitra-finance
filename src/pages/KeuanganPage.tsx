@@ -245,20 +245,20 @@ const KeuanganPage: React.FC = () => {
             <button 
               type="button"
               onClick={() => setShowDeleteAllModal(true)}
-              className="bg-red-50 text-red-500 px-3 md:px-5 py-2.5 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
+              className="bg-red-50 text-red-500 px-3 md:px-5 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
             >
               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
               Reset Data
             </button>
           )}
-          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 md:px-6 py-2.5 md:py-4 rounded-xl md:rounded-[20px] font-bold text-[10px] md:text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all">
+          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 md:px-5 py-2 md:py-3 rounded-xl md:rounded-[20px] font-bold text-[10px] md:text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all">
             <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
             Impor
           </Link>
           <button 
             type="button"
             onClick={() => setIsAddingCategory(true)}
-            className="col-span-2 md:col-span-1 bg-accent text-white px-4 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
+            className="col-span-2 md:col-span-1 bg-accent text-white px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" />
             Tambah Kotak
