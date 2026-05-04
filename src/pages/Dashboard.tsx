@@ -142,19 +142,20 @@ const Dashboard: React.FC = () => {
   const calculatedTotalUntung = totalSisaHutang + calculatedBankNeo + calculatedUangDipinjamkan;
 
   const stats = [
-    { label: labels.uang_cash, value: keuangan?.uang_cash || 0, icon: Wallet, color: 'bg-green-500' },
-    { label: labels.uang_nasabah, value: totalSisaHutang, icon: Landmark, color: 'bg-indigo-500' },
-    { label: labels.uang_bank_neo, value: calculatedBankNeo, icon: Landmark, color: 'bg-sky-500' },
-    { label: labels.uang_dipinjamkan, value: calculatedUangDipinjamkan, icon: DollarSign, color: 'bg-purple-500' },
-    { label: labels.total_keuntungan, value: calculatedTotalUntung, icon: TrendingUp, color: 'bg-accent' },
-    { label: 'Total Nasabah', value: totalNasabah, icon: Users, color: 'bg-blue-500', isCurrency: false },
-    { label: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'bg-emerald-500' },
-    { label: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'bg-teal-500' },
+    { label: labels.uang_cash, value: keuangan?.uang_cash || 0, icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    { label: labels.uang_nasabah, value: totalSisaHutang, icon: Landmark, color: 'text-indigo-600 dark:text-indigo-400', bgColor: 'bg-indigo-500/10' },
+    { label: labels.uang_bank_neo, value: calculatedBankNeo, icon: Landmark, color: 'text-sky-600 dark:text-sky-400', bgColor: 'bg-sky-500/10' },
+    { label: labels.uang_dipinjamkan, value: calculatedUangDipinjamkan, icon: DollarSign, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-500/10' },
+    { label: labels.total_keuntungan, value: calculatedTotalUntung, icon: TrendingUp, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
+    { label: 'Total Nasabah', value: totalNasabah, icon: Users, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500/10', isCurrency: false },
+    { label: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    { label: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'text-teal-600 dark:text-teal-400', bgColor: 'bg-teal-500/10' },
     ...(settings?.custom_categories || []).map(c => ({
       label: c.label,
       value: keuangan?.[c.id] || 0,
       icon: Wallet,
-      color: 'bg-blue-500'
+      color: 'text-slate-600 dark:text-slate-400',
+      bgColor: 'bg-slate-500/10'
     }))
   ];
 
@@ -211,7 +212,7 @@ const Dashboard: React.FC = () => {
             transition={{ delay: i * 0.05 }}
             className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl relative overflow-hidden group border border-white/10"
           >
-            <div className={cn("absolute top-0 right-0 w-12 h-12 md:w-20 md:h-20 -mr-3 -mt-3 md:-mr-6 md:-mt-6 rounded-full opacity-10 transition-transform group-hover:scale-110", stat.color)} />
+            <div className={cn("absolute top-0 right-0 w-12 h-12 md:w-20 md:h-20 -mr-3 -mt-3 md:-mr-6 md:-mt-6 rounded-full opacity-5 transition-transform group-hover:scale-110", stat.bgColor)} />
             <div className="flex flex-col md:flex-row md:items-start justify-between relative z-10 gap-1 md:gap-0">
               <div className="order-2 md:order-1">
                 <p className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest truncate">{stat.label}</p>
@@ -219,7 +220,7 @@ const Dashboard: React.FC = () => {
                   {stat.isCurrency === false ? stat.value : formatRupiah(stat.value)}
                 </h3>
               </div>
-              <div className={cn("p-1.5 md:p-2.5 rounded-lg md:rounded-xl text-white shadow-lg self-start md:self-auto order-1 md:order-2", stat.color)}>
+              <div className={cn("p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-sm self-start md:self-auto order-1 md:order-2", stat.bgColor, stat.color)}>
                 <stat.icon className="w-3 md:w-5 h-3 md:h-5" />
               </div>
             </div>

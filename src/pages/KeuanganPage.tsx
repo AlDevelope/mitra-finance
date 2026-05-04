@@ -205,21 +205,22 @@ const KeuanganPage: React.FC = () => {
   if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
   const coreFields = [
-    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'bg-emerald-500', canEdit: true },
-    { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, color: 'bg-primary', readonly: true, canEdit: true },
-    { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, color: 'bg-sky-500', readonly: true, canEdit: true },
-    { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: DollarSign, color: 'bg-amber-500', readonly: true, canEdit: true },
-    { key: 'total_keuntungan', label: settings?.category_labels?.total_keuntungan || 'Total Untung', icon: TrendingUp, color: 'bg-accent', readonly: true, canEdit: true },
-    { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'bg-slate-600', canEdit: true },
-    { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'bg-slate-700', canEdit: true },
-    { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: TrendingUp, color: 'bg-indigo-500', canEdit: true },
-    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'bg-orange-500', canEdit: true },
+    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', canEdit: true },
+    { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, color: 'primary', readonly: true, canEdit: true },
+    { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, color: 'sky', readonly: true, canEdit: true },
+    { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: DollarSign, color: 'amber', readonly: true, canEdit: true },
+    { key: 'total_keuntungan', label: settings?.category_labels?.total_keuntungan || 'Total Untung', icon: TrendingUp, color: 'accent', readonly: true, canEdit: true },
+    { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
+    { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
+    { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: TrendingUp, color: 'indigo', canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({
     key: c.id,
     label: c.label,
     icon: Wallet,
+    color: 'slate',
     canEdit: true,
     canDelete: true
   }));
@@ -306,7 +307,8 @@ const KeuanganPage: React.FC = () => {
       <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {allFields.map((field) => (
           <div key={field.key} className="glass p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl lg:rounded-[40px] space-y-2 md:space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[100px] md:min-h-[160px] border border-white/10 shadow-sm transition-all duration-300 hover:shadow-xl">
-             <div className={cn("absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full opacity-[0.03] md:opacity-[0.05] transition-transform group-hover:scale-110", field.color || 'bg-primary')} />
+             <div className={cn("absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full opacity-[0.03] md:opacity-[0.05] transition-transform group-hover:scale-110", 
+               field.color === 'primary' ? 'bg-primary' : (field.color === 'accent' ? 'bg-accent' : `bg-${field.color}-500`))} />
              
              {field.canDelete && !editingField && (
               <button 
@@ -361,8 +363,9 @@ const KeuanganPage: React.FC = () => {
                 />
               </div>
               <div className={cn(
-                "hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl items-center justify-center shrink-0 shadow-lg text-white",
-                field.color || "bg-primary"
+                "hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl items-center justify-center shrink-0 shadow-sm transition-colors",
+                field.color === 'primary' ? 'bg-primary/10 text-primary' : 
+                (field.color === 'accent' ? 'bg-accent/10 text-accent' : `bg-${field.color}-500/10 text-${field.color}-600 dark:text-${field.color}-400`)
               )}>
                 <field.icon className="w-4 h-4 md:w-6 md:h-6" />
               </div>
