@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { logNotification } from '../lib/notifications';
 import { NotificationType } from '../types';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { cn } from '../lib/utils';
 
 const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
@@ -207,22 +208,22 @@ const KosankuPage: React.FC = () => {
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Uang Kosan</h2>
           <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
-        <div className="flex flex-wrap gap-2 md:gap-3">
+        <div className="grid grid-cols-2 md:flex md:gap-3 gap-2 w-full md:w-auto">
           {isAdmin && (
             <button 
               onClick={() => setShowDeleteAllModal(true)}
-              className="px-3 md:px-6 py-2 md:py-4 bg-red-50 text-red-500 border border-red-100 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-red-100 transition-all flex items-center gap-1.5 md:gap-2"
+              className="px-3 md:px-6 py-2 md:py-4 bg-red-50 text-red-500 border border-red-100 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-red-100 transition-all flex items-center justify-center gap-1.5 md:gap-2"
             >
               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> Hapus Semua
             </button>
           )}
-          <label className="flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-4 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
+          <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-4 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-4 h-4 md:w-5 md:h-5" /> Import XLSX
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
           </label>
           <button 
             onClick={() => setShowAdd(!showAdd)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-8 py-2 md:py-4 bg-accent text-white rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-8 py-2 md:py-4 bg-accent text-white rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" /> Tambah Data
           </button>
@@ -230,32 +231,44 @@ const KosankuPage: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="glass p-3 md:p-8 rounded-2xl md:rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-lg shadow-green-500/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <TrendingUp className="w-3 h-3 md:w-6 md:h-6 mb-1 md:mb-4 text-white/50" />
-          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Pemasukan</p>
-          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none">{formatRupiah(totals.terkumpul)}</h3>
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
+          <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-green-500 opacity-[0.05] transition-transform group-hover:scale-110" />
+          <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
+            <div className="p-2 md:p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-xl md:rounded-2xl">
+              <TrendingUp className="w-3.5 h-3.5 md:w-6 md:h-6" />
+            </div>
+          </div>
+          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Pemasukan</p>
+          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.terkumpul)}</h3>
         </div>
-        <div className="glass p-3 md:p-8 rounded-2xl md:rounded-[40px] bg-emerald-600 text-white relative overflow-hidden shadow-lg shadow-emerald-600/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <Wallet className="w-3 h-3 md:w-6 md:h-6 mb-1 md:mb-4 text-white/50" />
-          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Uang Bersih</p>
-          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none">{formatRupiah(totals.uangBersih)}</h3>
+
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
+          <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-emerald-500 opacity-[0.05] transition-transform group-hover:scale-110" />
+          <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
+            <div className="p-2 md:p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl md:rounded-2xl">
+              <Wallet className="w-3.5 h-3.5 md:w-6 md:h-6" />
+            </div>
+          </div>
+          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Uang Bersih</p>
+          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.uangBersih)}</h3>
         </div>
-        <div className="glass p-3 md:p-8 rounded-2xl md:rounded-[40px] bg-sky-500 text-white relative overflow-hidden shadow-lg shadow-sky-500/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <div className="flex justify-between items-start mb-1 md:mb-4 relative z-10">
-            <Home className="w-3 h-3 md:w-6 md:h-6 text-white/50" />
+
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
+          <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-sky-500 opacity-[0.05] transition-transform group-hover:scale-110" />
+          <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
+            <div className="p-2 md:p-3 bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-xl md:rounded-2xl">
+              <Home className="w-3.5 h-3.5 md:w-6 md:h-6" />
+            </div>
             {isAdmin && (
               <button 
                 onClick={() => { setIsEditingModal(true); setNewModalVal(totals.modalRenov.toString()); }}
-                className="p-1 hover:bg-white/20 rounded-lg transition-all"
+                className="p-1.5 hover:bg-sky-100 dark:hover:bg-sky-500/10 rounded-lg transition-all"
               >
-                <Edit2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                <Edit2 className="w-3 h-3 md:w-4 md:h-4 text-sky-600" />
               </button>
             )}
           </div>
-          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Modal Renov</p>
+          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Modal Renov</p>
           {isEditingModal ? (
             <div className="flex gap-1 mt-0.5 md:mt-1 relative z-10">
               <input 
@@ -265,20 +278,25 @@ const KosankuPage: React.FC = () => {
                   const raw = e.target.value.replace(/[^0-9]/g, '');
                   setNewModalVal(raw);
                 }}
-                className="bg-white/20 border-none outline-none text-white font-bold p-0.5 rounded w-full text-[10px]"
+                className="bg-gray-50 dark:bg-white/5 border border-sky-200 dark:border-sky-500/20 outline-none text-sky-600 dark:text-sky-400 font-bold p-1 rounded-lg w-full text-[10px] md:text-sm"
                 autoFocus
               />
-              <button onClick={handleUpdateModal} className="p-0.5 bg-white/20 rounded"><Check className="w-2.5 h-2.5" /></button>
+              <button onClick={handleUpdateModal} className="p-1 px-2 bg-sky-500 text-white rounded-lg"><Check className="w-3 h-3" /></button>
             </div>
           ) : (
-            <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none">{formatRupiah(totals.modalRenov)}</h3>
+            <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.modalRenov)}</h3>
           )}
         </div>
-        <div className="glass p-3 md:p-8 rounded-2xl md:rounded-[40px] bg-accent text-white relative overflow-hidden shadow-lg shadow-accent/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <TrendingUp className="w-3 h-3 md:w-6 md:h-6 mb-1 md:mb-4 text-white/50 rotate-180" />
-          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-white/80">Sisa Modal</p>
-          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none">{formatRupiah(totals.sisa)}</h3>
+
+        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
+          <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-accent opacity-[0.05] transition-transform group-hover:scale-110" />
+          <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
+            <div className="p-2 md:p-3 bg-accent/10 text-accent rounded-xl md:rounded-2xl">
+              <TrendingUp className="w-3.5 h-3.5 md:w-6 md:h-6 rotate-180" />
+            </div>
+          </div>
+          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Sisa Modal</p>
+          <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.sisa)}</h3>
         </div>
       </div>
 

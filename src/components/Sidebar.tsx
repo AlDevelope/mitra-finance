@@ -48,16 +48,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     <aside className="w-64 h-screen glass-dark text-white flex flex-col fixed left-0 top-0 z-40">
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          {settings?.logo_url ? (
-            <img src={settings.logo_url} alt="Logo" className="w-10 h-10 object-contain rounded-lg" />
-          ) : (
-            <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-lg" onError={(e) => {
+          <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-lg" onError={(e) => {
+            // Fallback to settings logo if logo.png is missing
+            (e.target as HTMLImageElement).src = settings?.logo_url || '';
+            if (!settings?.logo_url) {
               (e.target as HTMLImageElement).style.display = 'none';
               (e.target as HTMLImageElement).parentElement?.querySelector('.logo-placeholder')?.classList.remove('hidden');
-            }} />
-          )}
+            }
+          }} />
           <div className="w-auto h-10 px-3 bg-accent rounded-lg flex items-center justify-center font-bold text-xs logo-placeholder hidden">
-            Mitra Finance 99
+            MF99
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight truncate w-32">Mitra Finance 99</h1>

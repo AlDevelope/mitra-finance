@@ -23,15 +23,19 @@ export const Layout: React.FC = () => {
     const handleScroll = () => {
       if (mainRef.current) {
         const scrollTop = mainRef.current.scrollTop;
+        const scrollDelta = scrollTop - lastScrollTop;
+        
         setScrolled(scrollTop > 20);
         
-        // Hide on scroll down, show on scroll up
-        if (scrollTop > lastScrollTop && scrollTop > 100) {
-          setShowNavbar(false);
-        } else {
-          setShowNavbar(true);
+        // Hide on scroll down, show on scroll up (with a small threshold for smoother feel)
+        if (Math.abs(scrollDelta) > 10) {
+          if (scrollTop > lastScrollTop && scrollTop > 150) {
+            setShowNavbar(false);
+          } else {
+            setShowNavbar(true);
+          }
+          setLastScrollTop(scrollTop);
         }
-        setLastScrollTop(scrollTop);
       }
     };
     const main = mainRef.current;
@@ -118,10 +122,15 @@ export const Layout: React.FC = () => {
         <AnimatePresence>
           {showNavbar && (
             <motion.div 
-              initial={{ y: 100, opacity: 0 }}
+              initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              exit={{ y: 50, opacity: 0 }}
+              transition={{ 
+                type: 'spring', 
+                damping: 20, 
+                stiffness: 150,
+                opacity: { duration: 0.2 }
+              }}
               className="xl:hidden fixed bottom-6 left-6 right-6 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-white/5 px-6 py-2 flex justify-between items-center rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden"
             >
                <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 pointer-events-none" />
