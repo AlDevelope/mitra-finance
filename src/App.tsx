@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import AboutPage from './pages/AboutPage';
 import Dashboard from './pages/Dashboard';
 import NasabahPage from './pages/NasabahPage';
 import NasabahDetail from './pages/NasabahDetail';
@@ -21,6 +22,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
           
           {/* Admin Routes */}

@@ -9,7 +9,8 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Lock, Mail, Eye, EyeOff, Chrome } from 'lucide-react';
+import { Building2, Lock, Mail, Eye, EyeOff, Chrome, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Role } from '../types';
 import { seedDatabase } from '../lib/seed';
@@ -132,14 +133,21 @@ const LoginPage: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1 transition-colors">Mitra Finance 99</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 font-medium italic transition-colors">Berkembang, Bertumbuh, Berinovasi</p>
 
-        <button 
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full bg-white text-gray-700 py-3.5 rounded-2xl font-bold border border-gray-200 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all mb-6 active:scale-95 shadow-sm"
-        >
-          <Chrome className="w-5 h-5 text-primary" />
-          Masuk dengan Google
-        </button>
+        <div className="w-full space-y-3 mb-6">
+          <button 
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full bg-white text-gray-700 py-3.5 rounded-2xl font-bold border border-gray-200 flex items-center justify-center gap-3 hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+          >
+            <Chrome className="w-5 h-5 text-primary" />
+            Masuk dengan Google
+          </button>
+          
+          <Link to="/about" className="w-full bg-accent/10 border border-accent/20 text-accent py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-accent hover:text-white transition-all active:scale-95 shadow-sm group">
+            <Info className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            Apa itu Mitra Finance 99?
+          </Link>
+        </div>
 
         <div className="w-full flex items-center gap-4 mb-6">
           <div className="flex-1 h-px bg-gray-200" />
