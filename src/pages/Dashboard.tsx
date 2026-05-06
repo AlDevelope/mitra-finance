@@ -1,380 +1,388 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useKeuangan } from '../hooks/useKeuangan';
+import { useSettings } from '../hooks/useSettings';
+import { formatRupiah, formatDisplayDate, formatDateToISO, excelSerialToDate } from '../lib/formulas';
 import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  addDoc, 
-  serverTimestamp, 
-  deleteDoc, 
-  doc, 
-  getDocs, 
-  writeBatch 
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { AngsuranLog, NotificationType } from '../types';
-import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
-import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+  DollarSign, 
+  Users, 
+  TrendingUp, 
+  ArrowUpRight, 
+  Landmark, 
+  Map as MapIcon, 
+  Hammer,
+  Wallet,
+  PieChart as PieIcon,
+  BarChart3
+} from 'lucide-react';
 import { motion } from 'motion/react';
-import * as XLSX from 'xlsx';
-import { logNotification } from '../lib/notifications';
-import { useAuth } from '../context/AuthContext';
-import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Nasabah, NasabahStatus, NotificationType } from '../types';
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  Tooltip, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid,
+  Legend
+} from 'recharts';
+import { cn } from '../lib/utils';
 
-const AngsuranLogPage: React.FC = () => {
-  const { isAdmin } = useAuth();
-  const [logs, setLogs] = useState<AngsuranLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
-  const [localMasuk, setLocalMasuk] = useState('0');
-  const [localKeluar, setLocalKeluar] = useState('0');
-  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+const Dashboard: React.FC = () => {
+  const { data: keuangan, loading: keuanganLoading, error: keuanganError } = useKeuangan();
+  const { settings } = useSettings();
+  const [totalNasabah, setTotalNasabah] = useState(0);
+  const [activeNasabah, setActiveNasabah] = useState(0);
+  const [lunasNasabah, setLunasNasabah] = useState(0);
+  const [totalSisaHutang, setTotalSisaHutang] = useState(0);
+  const [nasabahError, setNasabahError] = useState<string | null>(null);
+  
+
+  const labels = {
+    uang_tanah_lama: settings?.category_labels?.uang_tanah_lama || 'Tanah Lama',
+    uang_tanah_baru: settings?.category_labels?.uang_tanah_baru || 'Tanah Baru',
+    uang_cash: settings?.category_labels?.uang_cash || 'Uang Cash',
+    uang_nasabah: settings?.category_labels?.uang_nasabah || 'Uang Nasabah',
+    uang_bank_neo: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo',
+    uang_dipinjamkan: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan',
+    total_keuntungan: settings?.category_labels?.total_keuntungan || 'Total Untung',
+    uang_stokbit: settings?.category_labels?.uang_stokbit || 'Aset Stokbit (M3110)',
+    uang_renov: settings?.category_labels?.uang_renov || 'Dana Renovasi'
+  };
 
   useEffect(() => {
-    const q = query(collection(db, 'angsuran_logs'), orderBy('tanggal', 'asc'), orderBy('created_at', 'asc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      let runningTotal = 0;
-      const data = snap.docs.map(doc => {
-        const d = doc.data();
-        runningTotal += (Number(d.masuk) || 0) - (Number(d.keluar) || 0);
-        return { id: doc.id, ...d, total: runningTotal } as AngsuranLog;
-      });
-      setLogs([...data].reverse());
-      setLoading(false);
-    }, (error) => {
-      console.error("Error loading logs:", error);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const totals = useMemo(() => {
-    const masuk = logs.reduce((acc, curr) => acc + (Number(curr.masuk) || 0), 0);
-    const keluar = logs.reduce((acc, curr) => acc + (Number(curr.keluar) || 0), 0);
-    return { masuk, keluar, saldo: masuk - keluar };
-  }, [logs]);
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const data = {
-        ...form,
-        masuk: Number(form.masuk),
-        keluar: Number(form.keluar),
-        created_at: serverTimestamp()
-      };
-      await addDoc(collection(db, 'angsuran_logs'), data);
+    const unsub = onSnapshot(collection(db, 'nasabah'), (snap) => {
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Nasabah));
+      setTotalNasabah(snap.size);
       
-      // Log Notification
-      const type = data.masuk > 0 ? 'Pemasukan' : 'Pengeluaran';
-      const amount = data.masuk > 0 ? data.masuk : data.keluar;
-      await logNotification(
-        `Catat ${type} Baru`,
-        `Berhasil mencatat ${type.toLowerCase()} sebesar ${formatRupiah(amount)}: ${data.keterangan}`,
-        data.masuk > 0 ? NotificationType.SUCCESS : NotificationType.WARNING
-      );
-
-      setShowAdd(false);
-      setForm({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
-      setLocalMasuk('0');
-      setLocalKeluar('0');
-    } catch (err) {
-      alert('Gagal menambah log');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Hapus log ini?')) {
-      const logToDelete = logs.find(l => l.id === id);
-      await deleteDoc(doc(db, 'angsuran_logs', id));
+      const active = docs.filter(d => d.status !== NasabahStatus.LUNAS).length;
+      const lunas = docs.filter(d => d.status === NasabahStatus.LUNAS).length;
+      const sisaHutang = docs.reduce((acc, curr) => acc + (curr.sisa_hutang || 0), 0);
       
-      if (logToDelete) {
-        await logNotification(
-          'Log Keuangan Dihapus',
-          `Menghapus catatan keuangan: ${logToDelete.keterangan}`,
-          NotificationType.ERROR
-        );
-      }
-    }
-  };
+      setActiveNasabah(active);
+      setLunasNasabah(lunas);
+      setTotalSisaHutang(sisaHutang);
 
-  const handleDeleteAll = async () => {
-    try {
-      const batch = writeBatch(db);
-      const snap = await getDocs(collection(db, 'angsuran_logs'));
-      snap.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-      
-      await logNotification(
-        'Histori Log Dibersihkan',
-        'Seluruh data histori keuangan angsuran telah dihapus.',
-        NotificationType.ERROR
-      );
-      
-      setShowDeleteAllModal(false);
-      alert('Seluruh data histori angsuran telah dihapus.');
-    } catch (err: any) {
-      alert(`Gagal menghapus data: ${err.message}`);
-    }
-  };
-
-  const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames.find(n => n.toLowerCase().includes('angsuran')) || wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        
-        // Convert to array of arrays to handle snaked layout manually
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-        
-        let count = 0;
-        // The screenshot shows data starts from row 4 (index 3)
-        // Group 1: Cols B(1), C(2), D(3), E(4)
-        // Group 2: Cols H(7), I(8), J(9), K(10)
-        
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length < 2) continue;
-
-          // Helper to check if a cell looks like a "Date" header
-          const isHeader = (cell: any) => {
-            if (!cell) return false;
-            const s = String(cell).toUpperCase();
-            return s.includes('TGL') || s.includes('TANGGAL') || s.includes('NO');
-          };
-
-          const isTitle = (cell: any) => {
-            if (!cell) return false;
-            return String(cell).includes('Keterangan Keuangan') || String(cell).includes('Multi Kredit');
-          };
-
-          // Parse Group 1 (B, C, D, E)
-          if (row[1] && !isHeader(row[1]) && !isTitle(row[1])) {
-            const tanggal = parseExcelDate(row[1]);
-            const keterangan = row[2] || '';
-            const masuk = parseExcelValue(row[3]);
-            const keluar = parseExcelValue(row[4]);
-            
-            // Validate it's actually a data row (has either income/expense OR a valid date string with /)
-            const hasAmount = masuk > 0 || keluar > 0;
-            const hasDesc = String(keterangan).trim().length > 0;
-
-            if (hasDesc && hasAmount) {
-              await addDoc(collection(db, 'angsuran_logs'), {
-                tanggal,
-                keterangan: String(keterangan),
-                masuk,
-                keluar,
-                created_at: serverTimestamp()
-              });
-              count++;
-            }
-          }
-
-          // Parse Group 2 (H, I, J, K)
-          if (row[7] && !isHeader(row[7]) && !isTitle(row[7])) {
-            const tanggal = parseExcelDate(row[7]);
-            const keterangan = row[8] || '';
-            const masuk = parseExcelValue(row[9]);
-            const keluar = parseExcelValue(row[10]);
-
-            const hasAmount = masuk > 0 || keluar > 0;
-            const hasDesc = String(keterangan).trim().length > 0;
-
-            if (hasDesc && hasAmount) {
-              await addDoc(collection(db, 'angsuran_logs'), {
-                tanggal,
-                keterangan: String(keterangan),
-                masuk,
-                keluar,
-                created_at: serverTimestamp()
-              });
-              count++;
-            }
+      // Dynamic Check for Due Dates (Notifications)
+      docs.forEach(async (n) => {
+        if (n.status === NasabahStatus.AKTIF) {
+          const lastUpdate = n.updated_at?.toDate() || n.created_at?.toDate() || new Date();
+          const diffDays = Math.floor((new Date().getTime() - lastUpdate.getTime()) / (1000 * 3600 * 24));
+          
+          if (diffDays >= 7) {
+             const todayStr = new Date().toISOString().split('T')[0];
+             const notifId = `due_${n.id}_${todayStr}`;
+             
+             // Check if already notified today using a dummy doc or just checking notifications collection
+             // For simplicity, we can just check if any notification with this title exists
+             try {
+                // We'll use a fixed ID for today's notification per user to avoid duplicates
+                await setDoc(doc(db, 'notifications', notifId), {
+                  title: 'Waktunya Bayar!',
+                  message: `Nasabah ${n.nama} (${n.barang}) sudah masuk waktu bayar mingguan (Sudah ${diffDays} hari sejak transaksi terakhir).`,
+                  type: NotificationType.WARNING,
+                  is_read: false,
+                  created_at: serverTimestamp()
+                }, { merge: true });
+             } catch (e) {
+                console.error("Error creating due notification", e);
+             }
           }
         }
-        
-        alert(`Berhasil impor ${count} data angsuran`);
-      } catch (err: any) {
-        console.error('Import Error:', err);
-        alert('Gagal mengimpor file: ' + err.message);
-      } finally {
-        if (e.target) e.target.value = '';
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
+      });
+    }, (err) => {
+      console.error("Dashboard Nasabah Error:", err);
+      setNasabahError(err.message);
+    });
+    return unsub;
+  }, []);
 
-  if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat histori log...</div>;
+  if (keuanganLoading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-400 font-bold">Memuat dashboard...</p>
+    </div>
+  );
+
+  if (keuanganError || nasabahError) return (
+    <div className="p-8 glass rounded-[40px] text-center space-y-4">
+      <h3 className="text-xl font-bold text-danger">Akses Database Terbatas</h3>
+      <p className="text-gray-500 max-w-lg mx-auto">
+        Database menolak akses. Ini biasanya terjadi jika:
+      </p>
+      <ul className="text-left text-xs text-gray-500 space-y-2 max-w-sm mx-auto list-disc">
+        <li>Fitur <b>"Email/Password"</b> belum diaktifkan di Firebase Console.</li>
+        <li>Anda belum masuk (Login) dengan akun yang valid.</li>
+        <li>Koneksi internet terputus.</li>
+      </ul>
+      <div className="text-[10px] text-gray-400 bg-gray-50 p-4 rounded-xl font-mono text-left overflow-auto max-h-32">
+        Error Log: {keuanganError || nasabahError}
+      </div>
+      <div className="flex gap-4 justify-center">
+        <button onClick={() => window.location.reload()} className="px-6 py-3 bg-primary text-white rounded-2xl font-bold text-sm">Refresh Halaman</button>
+        <button onClick={() => { localStorage.removeItem('MF99_DEMO_MODE'); window.location.href = '/login'; }} className="px-6 py-3 border border-gray-200 rounded-2xl font-bold text-sm">Kembali ke Login</button>
+      </div>
+    </div>
+  );
+
+  const calculatedUangDipinjamkan = (keuangan?.uang_tanah_lama || 0) + 
+                                    (keuangan?.uang_tanah_baru || 0) + 
+                                    (keuangan?.uang_stokbit || 0) + 
+                                    (keuangan?.uang_renov || 0);
+
+  // Bank Neo derived: Uang Cash - Uang yang dipinjamkan
+  const calculatedBankNeo = (keuangan?.uang_cash || 0) - calculatedUangDipinjamkan;
+
+  // Total Untung: Uang Nasabah + Uang Bank Neo + Uang Dipinjamkan
+  const calculatedTotalUntung = totalSisaHutang + calculatedBankNeo + calculatedUangDipinjamkan;
+
+  const stats = [
+    { label: labels.uang_cash, value: keuangan?.uang_cash || 0, icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    { label: labels.uang_nasabah, value: totalSisaHutang, icon: Landmark, color: 'text-indigo-600 dark:text-indigo-400', bgColor: 'bg-indigo-500/10' },
+    { label: labels.uang_bank_neo, value: calculatedBankNeo, icon: Landmark, color: 'text-sky-600 dark:text-sky-400', bgColor: 'bg-sky-500/10' },
+    { label: labels.uang_dipinjamkan, value: calculatedUangDipinjamkan, icon: DollarSign, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-500/10' },
+    { label: labels.total_keuntungan, value: calculatedTotalUntung, icon: TrendingUp, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-500/10' },
+    { label: 'Total Nasabah', value: totalNasabah, icon: Users, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500/10', isCurrency: false },
+    { label: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0, icon: MapIcon, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    { label: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0, icon: MapIcon, color: 'text-teal-600 dark:text-teal-400', bgColor: 'bg-teal-500/10' },
+    ...(settings?.custom_categories || []).map(c => ({
+      label: c.label,
+      value: keuangan?.[c.id] || 0,
+      icon: Wallet,
+      color: 'text-slate-600 dark:text-slate-400',
+      bgColor: 'bg-slate-500/10'
+    }))
+  ];
+
+  const pieData = [
+    { name: 'Aktif', value: activeNasabah, color: '#1B4F72' },
+    { name: 'Lunas', value: lunasNasabah, color: '#27AE60' },
+  ];
+
+  const barData = [
+    { name: 'Cash', value: keuangan?.uang_cash || 0 },
+    { name: 'Neo', value: calculatedBankNeo },
+    { name: 'Dipinjam', value: calculatedUangDipinjamkan },
+  ];
+
+  const landData = [
+    { name: labels.uang_tanah_lama, value: keuangan?.uang_tanah_lama || 0 },
+    { name: labels.uang_tanah_baru, value: keuangan?.uang_tanah_baru || 0 },
+    { name: 'Stokbit', value: keuangan?.uang_stokbit || 0 },
+    { name: 'Renov', value: keuangan?.uang_renov || 0 }
+  ];
 
   return (
-    <div className="space-y-8 pb-20">
-      <AdminConfirmModal 
-        isOpen={showDeleteAllModal}
-        onClose={() => setShowDeleteAllModal(false)}
-        onConfirm={handleDeleteAll}
-        title="Hapus Seluruh Histori Log"
-        message="Hati-hati! Tindakan ini akan menghapus SELURUH histori catatan keuangan angsuran secara permanen dari server."
-      />
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
-          <p className="text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
+    <div className="space-y-8 pb-10">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="relative">
+            <img src="/logo.png" alt="Logo" className="w-14 h-14 md:w-20 md:h-20 object-contain rounded-xl md:rounded-3xl" onError={(e) => {
+              (e.target as HTMLImageElement).src = settings?.logo_url || '';
+              if (!settings?.logo_url) {
+                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).parentElement?.querySelector('.logo-fallback')?.classList.remove('hidden');
+              }
+            }} />
+            <div className="w-14 h-14 md:w-20 md:h-20 bg-primary rounded-xl md:rounded-3xl flex items-center justify-center shadow-lg shadow-primary/20 logo-fallback hidden">
+              <Users className="w-8 h-8 md:w-10 md:h-10 text-white" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-xl md:text-4xl font-black tracking-tight text-primary">Dashboard Admin</h2>
+            <p className="text-[10px] md:text-base text-gray-500 mt-0.5 md:mt-1 font-medium italic">Sistem Pemantauan Digital Mitra Finance 99</p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {isAdmin && (
-            <button 
-              onClick={() => setShowDeleteAllModal(true)}
-              className="px-6 py-4 bg-red-50 text-red-500 border border-red-100 rounded-[24px] font-bold text-sm hover:bg-red-100 transition-all flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" /> Hapus Semua
-            </button>
-          )}
-          <label className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
-            <Download className="w-5 h-5" /> Import Angsuran
-            <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
-          </label>
-          <button 
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 px-8 py-4 bg-accent text-white rounded-[24px] font-bold text-sm shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
-          >
-            <Plus className="w-5 h-5" /> Catat Log Baru
-          </button>
+        <div className="text-right hidden xl:block">
+           <p className="text-primary text-lg font-black italic tracking-tight">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
-        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-lg shadow-green-500/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <TrendingUp className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
-          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Total Masuk</p>
-          <h3 className="text-sm md:text-2xl font-black mt-1 leading-none">{formatRupiah(totals.masuk)}</h3>
-        </div>
-        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-red-500 text-white relative overflow-hidden shadow-lg shadow-red-500/10">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <TrendingDown className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
-          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Total Keluar</p>
-          <h3 className="text-sm md:text-2xl font-black mt-1 leading-none">{formatRupiah(totals.keluar)}</h3>
-        </div>
-        <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-primary text-white relative overflow-hidden shadow-lg shadow-primary/10 col-span-2 md:col-span-1">
-          <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
-          <Wallet className="w-4 h-4 md:w-6 md:h-6 mb-2 md:mb-4 text-white/50" />
-          <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white/70">Sisa Saldo</p>
-          <h3 className="text-sm md:text-2xl lg:text-3xl font-black mt-1 leading-none">{formatRupiah(totals.saldo)}</h3>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+        {stats.map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl relative overflow-hidden group border border-white/10"
+          >
+            <div className={cn("absolute top-0 right-0 w-12 h-12 md:w-20 md:h-20 -mr-3 -mt-3 md:-mr-6 md:-mt-6 rounded-full opacity-5 transition-transform group-hover:scale-110", stat.bgColor)} />
+            <div className="flex flex-col md:flex-row md:items-start justify-between relative z-10 gap-1 md:gap-0">
+              <div className="order-2 md:order-1">
+                <p className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest truncate">{stat.label}</p>
+                <h3 className="text-[11px] md:text-xl font-black mt-0.5 md:mt-1 truncate text-slate-900 dark:text-slate-100">
+                  {stat.isCurrency === false ? stat.value : formatRupiah(stat.value)}
+                </h3>
+              </div>
+              <div className={cn("p-1.5 md:p-2.5 rounded-lg md:rounded-xl shadow-sm self-start md:self-auto order-1 md:order-2", stat.bgColor, stat.color)}>
+                <stat.icon className="w-3 md:w-5 h-3 md:h-5" />
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
-      {showAdd && (
-        <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-[40px] border-2 border-accent/10">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Tanggal</label>
-              <input type="date" required value={form.tanggal} onChange={e => setForm({...form, tanggal: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" />
-            </div>
-            <div className="md:col-span-1 space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keterangan</label>
-              <input type="text" required value={form.keterangan} onChange={e => setForm({...form, keterangan: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" placeholder="Cicilan ke-X Nama..." />
-            </div>
-            <div className="grid grid-cols-2 gap-4 md:col-span-1">
-               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Masuk</label>
-                <input 
-                  type="text" 
-                  value={localMasuk} 
-                  onChange={e => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    const num = parseInt(raw) || 0;
-                    setLocalMasuk(formatRupiah(num));
-                    setForm({...form, masuk: num});
-                  }} 
-                  className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keluar</label>
-                <input 
-                  type="text" 
-                  value={localKeluar} 
-                  onChange={e => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    const num = parseInt(raw) || 0;
-                    setLocalKeluar(formatRupiah(num));
-                    setForm({...form, keluar: num});
-                  }} 
-                  className="w-full px-3 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
-                />
-              </div>
-            </div>
-            <button type="submit" className="bg-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-accent/20">Simpan Log</button>
-          </form>
-        </motion.section>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Nasabah Distribution */}
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] flex flex-col">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <PieIcon className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+            Distribusi Nasabah
+          </h3>
+          <div className="h-48 md:h-64 relative">
+             <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                </PieChart>
+             </ResponsiveContainer>
+             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <p className="text-2xl font-bold text-primary">{totalNasabah}</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase">Total</p>
+             </div>
+          </div>
+          <div className="flex justify-center gap-8 mt-4">
+             {pieData.map(item => (
+               <div key={item.name} className="flex items-center gap-2">
+                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                 <span className="text-xs font-bold text-gray-600">{item.name}: {item.value}</span>
+               </div>
+             ))}
+          </div>
+        </section>
 
-      <div className="glass rounded-[40px] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
-            <thead>
-              <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 dark:bg-slate-800/50 border-b dark:border-white/5">
-                <th className="px-6 py-5">Tgl No</th>
-                <th className="px-6 py-5">Keterangan</th>
-                <th className="px-6 py-5">Masuk</th>
-                <th className="px-6 py-5">Keluar</th>
-                <th className="px-6 py-5">Total</th>
-                <th className="px-6 py-5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-              {logs.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${l.masuk > 0 ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                        {l.masuk > 0 ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
-                      </div>
-                      <span className="font-bold text-gray-700 dark:text-gray-300 text-xs">{formatDisplayDate(l.tanggal)}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">{l.keterangan}</td>
-                  <td className="px-6 py-5 font-bold text-success text-xs">{l.masuk > 0 ? formatRupiah(l.masuk) : '-'}</td>
-                  <td className="px-6 py-5 font-bold text-danger text-xs">{l.keluar > 0 ? formatRupiah(l.keluar) : '-'}</td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Balance</span>
-                       <span className="font-black text-primary dark:text-sky-400 text-base leading-tight">{formatRupiah(l.total)}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <button onClick={() => handleDelete(l.id)} className="p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-xl transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center text-gray-400 font-medium italic">
-                     <div className="flex flex-col items-center gap-3">
-                        <Banknote className="w-12 h-12 opacity-20" />
-                        <p>Belum ada histori log keuangan tercatat</p>
-                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Financial Distribution */}
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] lg:col-span-2">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+            Perbandingan Aset Keuangan
+          </h3>
+          <div className="h-48 md:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fontWeight: 600, fill: '#94a3b8' }}
+                />
+                <YAxis hide />
+                <Tooltip 
+                  cursor={{ fill: 'transparent' }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-50">
+                          <p className="text-xs font-bold text-gray-400 mb-1 uppercase">{payload[0].payload.name}</p>
+                          <p className="text-sm font-bold text-primary">{formatRupiah(payload[0].value as number)}</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  fill="#1B4F72" 
+                  radius={[10, 10, 10, 10]} 
+                  barSize={40}
+                  animationBegin={200}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        {/* Land Assets */}
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px]">
+           <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+            <MapIcon className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+            Nilai Aset Properti (Tanah)
+          </h3>
+          <div className="h-48 md:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={landData} layout="vertical" margin={{ left: 20 }}>
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-50">
+                            <p className="text-xs font-bold text-gray-400 mb-1 uppercase">{payload[0].payload.name}</p>
+                            <p className="text-sm font-bold text-emerald-600">{formatRupiah(payload[0].value as number)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="value" fill="#10b981" radius={[0, 10, 10, 0]} barSize={25} />
+               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        {/* Other Updates */}
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] flex flex-col justify-center gap-4">
+           <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
+             <Hammer className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+             Pendukung Operasional
+           </h3>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 md:block space-y-0 md:space-y-4">
+              <div className="p-4 md:p-5 bg-gray-50 dark:bg-white/5 rounded-2xl md:rounded-3xl flex items-center justify-between">
+                 <div>
+                    <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">{labels.uang_renov}</p>
+                    <p className="text-sm md:text-xl font-black text-primary dark:text-sky-400">{formatRupiah(keuangan?.uang_renov || 0)}</p>
+                 </div>
+                 <div className="bg-white dark:bg-slate-900 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm">
+                    <Hammer className="w-4 h-4 md:w-6 md:h-6 text-accent" />
+                 </div>
+              </div>
+              <div className="p-4 md:p-5 bg-gray-50 dark:bg-white/5 rounded-2xl md:rounded-3xl flex items-center justify-between">
+                 <div>
+                    <p className="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">{labels.uang_stokbit}</p>
+                    <p className="text-sm md:text-xl font-black text-primary dark:text-sky-400">{formatRupiah(keuangan?.uang_stokbit || 0)}</p>
+                 </div>
+                 <div className="bg-white dark:bg-slate-900 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm">
+                    <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-sky-500" />
+                 </div>
+              </div>
+           </div>
+        </section>
       </div>
     </div>
   );
 };
 
-export default AngsuranLogPage;
+export default Dashboard;

@@ -545,7 +545,7 @@ const NasabahDetail: React.FC = () => {
         <NasabahShareCard 
           nasabah={nasabah} 
           history={history}
-          isLunas={nasabah.sisa_angsuran === 0}
+          isLunas={showLunasModal || nasabah.sisa_angsuran === 0}
           onClose={() => {
             setShowShareCard(false);
           }} 

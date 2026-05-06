@@ -55,7 +55,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
         });
       } else {
         // Fallback: Open WA with text and let them attach the downloaded image
-        const waLink = generateWhatsAppMessage(nasabah, nasabah.angsuran_terbayar);
+        const waLink = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(waLink, '_blank');
         
         // Also trigger download as fallback for the image
