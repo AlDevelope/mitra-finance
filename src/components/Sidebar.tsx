@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -38,10 +38,15 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { profile } = useAuth();
   const { settings } = useSettings();
+  const navigate = useNavigate();
   
-  const handleLogout = () => {
-    signOut(auth);
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

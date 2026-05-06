@@ -10,7 +10,7 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { NasabahShareCard } from '../components/NasabahShareCard';
 
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export const TagihanPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +21,7 @@ export const TagihanPage: React.FC = () => {
   const [showShareCard, setShowShareCard] = useState(false);
 
   const effectiveNasabahId = id || profile?.nasabah_id;
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!effectiveNasabahId) {
@@ -50,7 +51,12 @@ export const TagihanPage: React.FC = () => {
     };
   }, [effectiveNasabahId]); // Fixed dependency
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login', { replace: true });
+    } catch(err) {}
+  };
 
   const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true';
 

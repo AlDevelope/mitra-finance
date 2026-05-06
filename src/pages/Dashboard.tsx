@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useKeuangan } from '../hooks/useKeuangan';
 import { useSettings } from '../hooks/useSettings';
 import { formatRupiah, formatDisplayDate, formatDateToISO, excelSerialToDate } from '../lib/formulas';
@@ -16,7 +17,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 import { Nasabah, NasabahStatus, NotificationType } from '../types';
 import { 
   PieChart, 
@@ -36,6 +38,7 @@ import { cn } from '../lib/utils';
 const Dashboard: React.FC = () => {
   const { data: keuangan, loading: keuanganLoading, error: keuanganError } = useKeuangan();
   const { settings } = useSettings();
+  const navigate = useNavigate();
   const [totalNasabah, setTotalNasabah] = useState(0);
   const [activeNasabah, setActiveNasabah] = useState(0);
   const [lunasNasabah, setLunasNasabah] = useState(0);
@@ -125,7 +128,13 @@ const Dashboard: React.FC = () => {
       </div>
       <div className="flex gap-4 justify-center">
         <button onClick={() => window.location.reload()} className="px-6 py-3 bg-primary text-white rounded-2xl font-bold text-sm">Refresh Halaman</button>
-        <button onClick={() => { localStorage.removeItem('MF99_DEMO_MODE'); window.location.href = '/login'; }} className="px-6 py-3 border border-gray-200 rounded-2xl font-bold text-sm">Kembali ke Login</button>
+        <button onClick={async () => { 
+          localStorage.removeItem('MF99_DEMO_MODE'); 
+          try { await signOut(auth); } catch(e){}
+          navigate('/login', { replace: true }); 
+        }} className="px-6 py-3 border border-gray-200 rounded-2xl font-bold text-sm">
+          Kembali ke Login
+        </button>
       </div>
     </div>
   );

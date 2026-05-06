@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck, Image as ImageIcon, Save } from 'lucide-react';
+import { updateEmail, updatePassword, signOut } from 'firebase/auth';
+import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck, Image as ImageIcon, Save, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useSettings } from '../hooks/useSettings';
@@ -13,6 +14,8 @@ const SystemSettings: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showResetNasabahModal, setShowResetNasabahModal] = useState(false);
   const [showResetKeuanganModal, setShowResetKeuanganModal] = useState(false);
   const navigate = useNavigate();
@@ -22,6 +25,50 @@ const SystemSettings: React.FC = () => {
       setLogoUrl(settings.logo_url);
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (auth.currentUser?.email) {
+      setEmail(auth.currentUser.email);
+    }
+  }, [auth.currentUser]);
+
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (!auth.currentUser) throw new Error("Tidak ada user aktif.");
+      
+      let updated = false;
+      
+      if (email !== auth.currentUser.email && email.trim() !== '') {
+        await updateEmail(auth.currentUser, email);
+        updated = true;
+      }
+      
+      if (password.trim() !== '') {
+        await updatePassword(auth.currentUser, password);
+        updated = true;
+      }
+      
+      if (updated) {
+        await logNotification('Keamanan Akun', 'Email atau Password berhasil diubah.', NotificationType.INFO);
+        alert('Email / Password berhasil diperbarui!');
+        setPassword('');
+      } else {
+        alert('Tidak ada perubahan yang disimpan.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/requires-recent-login') {
+        alert('Demi keamanan, silahkan LOG OUT dan LOG IN kembali sebelum mengubah email/password.');
+        signOut(auth);
+      } else {
+        alert(`Gagal memperbarui: ${err.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUpdateBranding = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +251,49 @@ const SystemSettings: React.FC = () => {
               </button>
             </div>
           </div>
+        </section>
+
+        <section className="glass p-8 rounded-[40px]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Pengaturan Akun</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Akses Admin</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdateAccount} className="space-y-6">
+            <div className="space-y-2">
+               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Email / ID login</label>
+               <input 
+                 type="email" 
+                 required
+                 value={email}
+                 onChange={(e) => setEmail(e.target.value)}
+                 className="w-full bg-gray-50 dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-bold outline-none focus:border-accent transition-all"
+               />
+            </div>
+            <div className="space-y-2">
+               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Ganti Password</label>
+               <input 
+                 type="password" 
+                 value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+                 placeholder="Kosongkan jika tidak diganti"
+                 className="w-full bg-gray-50 dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-bold outline-none focus:border-accent transition-all"
+               />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+            >
+              Simpan Perubahan
+            </button>
+          </form>
         </section>
 
         <AdminConfirmModal
