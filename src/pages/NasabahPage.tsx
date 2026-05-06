@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNasabah } from '../hooks/useNasabah';
 import { formatRupiah } from '../lib/formulas';
-import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { NasabahStatus } from '../types';
+import { NasabahStatus, NotificationType } from '../types';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import * as XLSX from 'xlsx';
+import { doc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { logNotification } from '../lib/notifications';
 
 const NasabahPage: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -15,6 +19,8 @@ const NasabahPage: React.FC = () => {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('SEMUA');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const filteredList = nasabahList.filter(n => {
     const matchesSearch = n.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -44,78 +50,119 @@ const NasabahPage: React.FC = () => {
     XLSX.writeFile(wb, `Data_Nasabah_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const handleDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      const batch = writeBatch(db);
+      const snap = await getDocs(collection(db, 'nasabah'));
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      
+      await logNotification(
+        'Database Nasabah Dibersihkan',
+        'Seluruh data nasabah telah dihapus dari sistem.',
+        NotificationType.ERROR
+      );
+      
+      setShowDeleteAllModal(false);
+      alert('Seluruh data nasabah berhasil dihapus.');
+    } catch (err: any) {
+      alert(`Gagal menghapus data: ${err.message}`);
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   if (loading) return <div>Loading data nasabah...</div>;
 
   return (
     <div className="space-y-6">
+      <AdminConfirmModal 
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Seluruh Nasabah"
+        message="Hati-hati! Tindakan ini akan menghapus SELURUH data nasabah secara permanen. Pastikan Anda sudah membackup data ke Excel jika diperlukan."
+      />
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Daftar Nasabah</h2>
           <p className="text-gray-500">Kelola unit angsuran dan pembayaran</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 lg:flex lg:items-center gap-2 md:gap-3 w-full lg:w-auto">
            {isAdmin && (
              <>
-               <Link to="/nasabah/tambah" className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20">
-                 <Plus className="w-5 h-5" />
-                 Tambah Nasabah
+               <button 
+                 onClick={() => setShowDeleteAllModal(true)}
+                 className="bg-red-50 text-red-500 px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
+               >
+                 <Trash2 className="w-3.5 h-3.5" />
+                 Hapus Semua
+               </button>
+               <Link to="/nasabah/tambah" className="bg-primary text-white px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all shadow-lg hover:shadow-primary/20 text-[10px] md:text-sm">
+                 <Plus className="w-4 h-4" />
+                 Tambah
                </Link>
-               <Link to="/import" className="bg-white text-primary border border-gray-200 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm">
-                 <FileSpreadsheet className="w-5 h-5" />
-                 Import Excel
+               <Link to="/import" className="bg-white text-primary border border-gray-200 px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all shadow-sm text-[10px] md:text-sm">
+                 <FileSpreadsheet className="w-4 h-4" />
+                 Import
                </Link>
                <button 
                  onClick={handleExport}
-                 className="bg-accent text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-light transition-all shadow-lg shadow-accent/20"
+                 className="bg-accent text-white px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-sm"
                >
-                 <Download className="w-5 h-5" />
-                 Export Excel
+                 <Download className="w-4 h-4" />
+                 Export
                </button>
              </>
            )}
         </div>
       </header>
 
-      <div className="glass p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-primary transition-colors" />
+      <div className="glass p-3 md:p-4 rounded-2xl flex flex-col md:flex-row gap-3 md:gap-4 items-center">
+        <div className="relative flex-1 w-full group">
+          <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
           <input 
             type="text" 
             placeholder="Cari nama nasabah atau barang..." 
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all outline-none text-xs md:text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
-          {['SEMUA', 'AKTIF', 'LUNAS', 'MENUNGGAK'].map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                filterStatus === s ? "bg-white text-primary shadow-sm" : "text-gray-400 hover:text-gray-600"
-              )}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        <div className="flex w-full md:w-auto gap-2">
+          <div className="flex flex-1 md:flex-none bg-gray-50 dark:bg-slate-800/50 p-1 md:p-1.5 rounded-xl border border-gray-100 dark:border-slate-700 overflow-x-auto hide-scrollbar">
+            {['SEMUA', 'AKTIF', 'LUNAS', 'MENUNGGAK'].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={cn(
+                  "px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-[10px] md:text-sm font-bold transition-all whitespace-nowrap",
+                  filterStatus === s ? "bg-white dark:bg-slate-700 text-primary dark:text-sky-400 shadow-sm" : "text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200"
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
 
-        <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100">
-          <button 
-            onClick={() => setView('grid')}
-            className={cn("p-2 rounded-lg transition-all", view === 'grid' ? "bg-white text-primary shadow-sm" : "text-gray-400")}
-          >
-            <Grid className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => setView('list')}
-            className={cn("p-2 rounded-lg transition-all", view === 'list' ? "bg-white text-primary shadow-sm" : "text-gray-400")}
-          >
-            <ListIcon className="w-5 h-5" />
-          </button>
+          <div className="flex shrink-0 bg-gray-50 dark:bg-slate-800/50 p-1 md:p-1.5 rounded-xl border border-gray-100 dark:border-slate-700">
+            <button 
+              onClick={() => setView('grid')}
+              className={cn("p-1.5 md:p-2 rounded-lg transition-all", view === 'grid' ? "bg-white dark:bg-slate-700 text-primary dark:text-sky-400 shadow-sm" : "text-gray-400 dark:text-slate-400")}
+            >
+              <Grid className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+            <button 
+              onClick={() => setView('list')}
+              className={cn("p-1.5 md:p-2 rounded-lg transition-all", view === 'list' ? "bg-white dark:bg-slate-700 text-primary dark:text-sky-400 shadow-sm" : "text-gray-400 dark:text-slate-400")}
+            >
+              <ListIcon className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -101,8 +101,7 @@ export interface Settings {
   simulasi_harga?: number;
   simulasi_dp?: number;
   category_labels: {
-    uang_tanah_lama: string;
-    uang_tanah_baru: string;
+    [key: string]: string;
   };
   custom_categories: { id: string; label: string }[];
 }

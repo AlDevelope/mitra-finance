@@ -217,30 +217,31 @@ const NasabahDetail: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/nasabah" className="w-10 h-10 glass flex items-center justify-center rounded-xl hover:bg-white transition-all">
-            <ArrowLeft className="w-5 h-5" />
+        <div className="flex items-center gap-2 md:gap-4">
+          <Link to="/nasabah" className="w-8 h-8 md:w-10 md:h-10 glass flex items-center justify-center rounded-lg md:rounded-xl hover:bg-white transition-all">
+            <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
           </Link>
-          <h2 className="text-2xl font-bold tracking-tight">Detail Nasabah</h2>
+          <h2 className="text-lg md:text-2xl font-bold tracking-tight">Detail Nasabah</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 md:gap-2">
            {isAdmin && (
              <>
                <button 
                  onClick={() => setShowShareCard(true)}
-                 className="px-4 h-10 bg-accent text-white rounded-xl flex items-center justify-center gap-2 hover:bg-accent/90 transition-all font-bold text-xs"
+                 className="px-3 md:px-4 h-8 md:h-10 bg-accent text-white rounded-lg md:rounded-xl flex items-center justify-center gap-1.5 md:gap-2 hover:bg-accent/90 transition-all font-bold text-[10px] md:text-xs"
                >
-                 <Camera className="w-4 h-4" />
-                 Bagikan Status
+                 <Camera className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                 <span className="hidden sm:inline">Bagikan Status</span>
+                 <span className="sm:hidden">Share</span>
                </button>
                <button 
                  onClick={() => setShowDeleteModal(true)} 
-                 className="w-10 h-10 bg-white border border-gray-100 text-danger rounded-xl flex items-center justify-center hover:bg-danger/5 transition-all"
+                 className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-100 text-danger rounded-lg md:rounded-xl flex items-center justify-center hover:bg-danger/5 transition-all outline-none"
                >
-                 <Trash2 className="w-5 h-5" />
+                 <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                </button>
-               <Link to={`/nasabah/${id}/edit`} className="w-10 h-10 bg-white border border-gray-100 text-primary rounded-xl flex items-center justify-center hover:bg-primary/5 transition-all">
-                 <Edit className="w-5 h-5" />
+               <Link to={`/nasabah/${id}/edit`} className="w-8 h-8 md:w-10 md:h-10 bg-white border border-gray-100 text-primary rounded-lg md:rounded-xl flex items-center justify-center hover:bg-primary/5 transition-all outline-none text-primary">
+                 <Edit className="w-4 h-4 md:w-5 md:h-5" />
                </Link>
              </>
            )}
@@ -262,36 +263,36 @@ const NasabahDetail: React.FC = () => {
           <section className="glass p-8 rounded-[40px] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-40 h-40 bg-accent/5 rounded-full -mr-10 -mt-10 blur-3xl" />
             
-            <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
-              <div className="w-24 h-24 rounded-3xl bg-primary text-white flex items-center justify-center text-4xl font-bold shadow-xl">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl md:rounded-3xl bg-primary text-white flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl">
                 {nasabah.nama.charAt(0)}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-3xl font-bold">{nasabah.nama}</h1>
+              <div className="flex-1 w-full">
+                <div className="flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-3 mb-1">
+                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight">{nasabah.nama}</h1>
                   <span className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase",
+                    "px-3 py-1 rounded-full text-[8px] md:text-[10px] font-black tracking-widest uppercase",
                     nasabah.status === NasabahStatus.LUNAS ? "bg-success/10 text-success" : "bg-primary/10 text-primary"
                   )}>
                     {nasabah.status}
                   </span>
                 </div>
-                <p className="text-gray-500 font-medium flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-accent" />
+                <p className="text-gray-500 dark:text-gray-400 font-bold flex items-center justify-center md:justify-start gap-2 text-xs md:text-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                   {nasabah.barang}
                 </p>
-                  <div className="mt-4 flex flex-col sm:flex-row gap-4">
+                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
                      <button 
                       onClick={() => setShowShareCard(true)}
-                      className="bg-green-500 text-white px-8 py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:scale-[1.02] transition-all"
+                      className="bg-green-500 text-white px-6 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-[24px] font-black text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3 shadow-xl shadow-green-500/20 hover:scale-[1.02] transition-all"
                      >
-                       <MessageCircle className="w-6 h-6" /> WhatsApp
+                       <MessageCircle className="w-5 h-5 md:w-6 md:h-6" /> WhatsApp
                      </button>
                      <button 
                       onClick={() => setShowShareCard(true)}
-                      className="bg-accent text-white px-8 py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
+                      className="bg-accent text-white px-6 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-[24px] font-black text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3 shadow-xl shadow-accent/20 hover:scale-[1.02] transition-all"
                      >
-                       <Share2 className="w-6 h-6" /> Bagikan Status
+                       <Share2 className="w-5 h-5 md:w-6 md:h-6" /> Bagikan Status
                      </button>
                   </div>
               </div>
@@ -544,7 +545,7 @@ const NasabahDetail: React.FC = () => {
         <NasabahShareCard 
           nasabah={nasabah} 
           history={history}
-          isLunas={nasabah.sisa_angsuran === 0 || (nasabah.angsuran_terbayar + 1 === nasabah.jumlah_angsuran)}
+          isLunas={nasabah.sisa_angsuran === 0}
           onClose={() => {
             setShowShareCard(false);
           }} 

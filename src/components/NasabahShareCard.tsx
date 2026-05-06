@@ -211,20 +211,34 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
               </div>
             </div>
 
-            {/* Main Info Box */}
+             {/* Main Info Box */}
             <div className={`${isDarkMode ? 'bg-[#15233D]' : 'bg-gray-50'} rounded-[40px] p-8 relative z-10 border ${isDarkMode ? 'border-white/5' : 'border-gray-100'} shadow-xl mb-6`}>
                <div className="mb-6">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-1.5 h-4 bg-accent rounded-full" />
                     <h2 className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} tracking-tight uppercase leading-none`}>{nasabah.nama}</h2>
                   </div>
-                  <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-[0.2em] mt-2`}>{nasabah.barang}</p>
+                  <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-[0.2em] mt-3`}>{nasabah.barang}</p>
                </div>
+
+               {history.length > 0 && (
+                 <div className={`mb-6 p-4 rounded-2xl ${isDarkMode ? 'bg-[#0A1628]/80' : 'bg-white'} border ${isDarkMode ? 'border-white/10' : 'border-gray-100'} flex items-center justify-between`}>
+                    <div className="flex flex-col">
+                       <span className={`text-[8px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Pembayaran Terakhir</span>
+                       <span className={`text-xs font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>{formatDisplayDate(history[0].tanggal_bayar)} (MGU {history[0].angsuran_ke})</span>
+                    </div>
+                    <div className={`text-right flex flex-col`}>
+                       <span className={`text-[8px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest text-right leading-none`}>Status</span>
+                       <span className="text-[10px] font-black text-green-500 uppercase tracking-widest leading-none mt-1">VERIFIED ✅</span>
+                    </div>
+                 </div>
+               )}
 
                <div className="flex items-center gap-8 mb-8">
                   {/* Gauge */}
                   <div className="relative w-32 h-32 shrink-0">
-                    <svg className="w-full h-full transform -rotate-90">                      <circle
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
                         cx="64"
                         cy="64"
                         r={radius}
@@ -236,7 +250,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                         cx="64"
                         cy="64"
                         r={radius}
-                        stroke={isDarkMode ? "#F43F5E" : "#F43F5E"}
+                        stroke="#F43F5E"
                         strokeWidth="10"
                         fill="transparent"
                         strokeDasharray={circumference}
@@ -250,8 +264,12 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className={`text-[10px] font-black ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-widest mb-1.5`}>Sisa Hutang</p>
+                    <p className={`text-[10px] font-black ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-widest mb-1.5`}>Sisa Cicilan</p>
                     <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-danger'} leading-none tracking-tighter`}>{formatRupiah(nasabah.sisa_hutang)}</p>
+                    <div className="mt-3 flex items-center gap-1">
+                       <span className={`text-[10px] font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Tersisa:</span>
+                       <span className={`text-[10px] font-black ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>{sisaMinggu} MINGGU LAGI</span>
+                    </div>
                   </div>
                </div>
  

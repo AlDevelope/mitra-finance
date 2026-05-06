@@ -74,45 +74,45 @@ const SimulasiPage: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-black tracking-tight text-primary dark:text-sky-400">Simulasi Mitra Kredit 99</h2>
+          <h2 className="text-3xl font-black tracking-tight text-primary dark:text-sky-400">Simulasi Mitra Finance 99</h2>
           <p className="text-gray-500 dark:text-slate-400 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
       </header>
 
       {/* Inputs */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass p-8 rounded-[40px] border-2 border-primary/10 dark:border-white/5 space-y-4 group">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        <div className="glass p-5 lg:p-8 rounded-3xl lg:rounded-[40px] border-2 border-primary/10 dark:border-white/5 space-y-4 group">
            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-5 h-5 text-accent" />
+              <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Harga Barang</label>
            </div>
            <input 
               type="text" 
               value={localHarga} 
               onChange={e => handleChangeHarga(e.target.value)}
-              className="w-full bg-transparent text-3xl font-black text-primary dark:text-white outline-none focus:text-accent transition-colors"
+              className="w-full bg-transparent text-2xl lg:text-3xl font-black text-primary dark:text-white outline-none focus:text-accent transition-colors"
            />
            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contoh: 1.500.000</p>
         </div>
-        <div className="glass p-8 rounded-[40px] border-2 border-primary/10 dark:border-white/5 space-y-4 group">
+        <div className="glass p-5 lg:p-8 rounded-3xl lg:rounded-[40px] border-2 border-primary/10 dark:border-white/5 space-y-4 group">
            <div className="flex items-center gap-2 mb-2">
-              <Wallet className="w-5 h-5 text-accent" />
+              <Wallet className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Uang Muka (DP)</label>
            </div>
            <input 
               type="text" 
               value={localUangMuka} 
               onChange={e => handleChangeDP(e.target.value)}
-              className="w-full bg-transparent text-3xl font-black text-primary dark:text-white outline-none focus:text-accent transition-colors"
+              className="w-full bg-transparent text-2xl lg:text-3xl font-black text-primary dark:text-white outline-none focus:text-accent transition-colors"
            />
            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">DP awal transaksi</p>
         </div>
-        <div className="glass p-8 rounded-[40px] bg-primary text-white space-y-4 shadow-xl shadow-primary/20">
+        <div className="glass p-5 lg:p-8 rounded-3xl lg:rounded-[40px] bg-primary text-white space-y-4 shadow-xl shadow-primary/20">
            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-accent" />
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-accent" />
               <label className="text-xs font-black text-white/50 uppercase tracking-widest">Total Pendanaan</label>
            </div>
-           <h3 className="text-3xl font-black">{formatRupiah(pendanaan)}</h3>
+           <h3 className="text-2xl lg:text-3xl font-black">{formatRupiah(pendanaan)}</h3>
            <p className="text-xs font-bold text-white/40">Hasil: Harga - Uang Muka</p>
         </div>
       </section>
@@ -184,36 +184,36 @@ const SimulasiPage: React.FC = () => {
             <TrendingUp className="w-6 h-6 text-accent" />
             ANALISIS KEUNTUNGAN (PROFIT)
          </h3>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="glass p-8 rounded-[40px] space-y-6">
-               <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-white/5 pb-4">Profit Mingguan</h4>
-               <div className="space-y-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
+            <div className="glass p-5 lg:p-8 rounded-3xl lg:rounded-[40px] space-y-4 lg:space-y-6">
+               <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-white/5 pb-3 lg:pb-4">Profit Mingguan</h4>
+               <div className="space-y-3 lg:space-y-4">
                   {weeklyTenors.map((t, i) => (
-                    <div key={i} className="flex justify-between items-center bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                    <div key={i} className="flex justify-between items-center bg-gray-50 dark:bg-white/5 p-3 lg:p-4 rounded-xl lg:rounded-2xl">
                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">{t.label}</p>
-                          <p className="font-bold text-gray-700 dark:text-white">{formatRupiah(calculateProfit(pendanaan, t.interest))}</p>
+                          <p className="text-[9px] lg:text-[10px] font-bold text-gray-400 uppercase">{t.label}</p>
+                          <p className="font-bold text-sm lg:text-base text-gray-700 dark:text-white">{formatRupiah(calculateProfit(pendanaan, t.interest))}</p>
                        </div>
                        <div className="text-right">
-                          <p className="text-[10px] font-bold text-success uppercase">Per Cicilan</p>
-                          <p className="font-black text-primary dark:text-sky-400">{formatRupiah(calculateProfit(pendanaan, t.interest) / t.tenor)}</p>
+                          <p className="text-[9px] lg:text-[10px] font-bold text-success uppercase">Per Cicilan</p>
+                          <p className="font-black text-sm lg:text-base text-primary dark:text-sky-400">{formatRupiah(calculateProfit(pendanaan, t.interest) / t.tenor)}</p>
                        </div>
                     </div>
                   ))}
                </div>
             </div>
-            <div className="glass p-8 rounded-[40px] space-y-6">
-               <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-white/5 pb-4">Profit Bulanan</h4>
-               <div className="space-y-4">
+            <div className="glass p-5 lg:p-8 rounded-3xl lg:rounded-[40px] space-y-4 lg:space-y-6">
+               <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 dark:border-white/5 pb-3 lg:pb-4">Profit Bulanan</h4>
+               <div className="space-y-3 lg:space-y-4">
                   {monthlyTenors.map((t, i) => (
-                    <div key={i} className="flex justify-between items-center bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                    <div key={i} className="flex justify-between items-center bg-gray-50 dark:bg-white/5 p-3 lg:p-4 rounded-xl lg:rounded-2xl">
                        <div>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase">{t.label}</p>
-                          <p className="font-bold text-gray-700 dark:text-white">{formatRupiah(calculateProfit(pendanaan, t.interest))}</p>
+                          <p className="text-[9px] lg:text-[10px] font-bold text-gray-400 uppercase">{t.label}</p>
+                          <p className="font-bold text-sm lg:text-base text-gray-700 dark:text-white">{formatRupiah(calculateProfit(pendanaan, t.interest))}</p>
                        </div>
                        <div className="text-right">
-                          <p className="text-[10px] font-bold text-success uppercase">Per Cicilan</p>
-                          <p className="font-black text-primary dark:text-sky-400">{formatRupiah(calculateProfit(pendanaan, t.interest) / t.tenor)}</p>
+                          <p className="text-[9px] lg:text-[10px] font-bold text-success uppercase">Per Cicilan</p>
+                          <p className="font-black text-sm lg:text-base text-primary dark:text-sky-400">{formatRupiah(calculateProfit(pendanaan, t.interest) / t.tenor)}</p>
                        </div>
                     </div>
                   ))}
