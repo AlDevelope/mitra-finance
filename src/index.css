@@ -17,21 +17,32 @@
 
 @layer base {
   body {
-    @apply font-sans text-slate-800 bg-slate-50 transition-colors duration-300 dark:bg-[#0F172A] dark:text-slate-100;
+    @apply font-sans;
+    color: var(--color-slate-800, #1e293b);
+    background-color: var(--color-slate-50, #f8fafc);
   }
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-}
+@layer components {
+  .glass {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  }
 
-.dark .glass {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  .dark .glass {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .glass-dark {
+    background-color: rgba(10, 22, 40, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,14 +51,18 @@
     --color-bg-dark: #0F172A;
   }
   
-  body {
-    @apply text-slate-100 bg-[#0F172A];
+  @layer base {
+    body {
+      color: var(--color-slate-100, #f1f5f9);
+      background-color: #0F172A;
+    }
   }
 
-  .glass {
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
+  @layer components {
+    .glass {
+      background-color: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
   }
 
   .bg-white {
@@ -65,31 +80,12 @@
   .text-gray-500, .text-gray-400 {
     @apply !text-slate-400;
   }
-  
-  .bg-white {
-    @apply bg-slate-900;
-  }
-  
-  .glass {
-    @apply bg-slate-800/40 border-white/5;
-  }
 
   .border-gray-100, .border-gray-50, .border-gray-200 {
     @apply !border-slate-800;
-  }
-  
-  .glass {
-    @apply bg-slate-800/40 border-white/5;
   }
 
   input, textarea, select {
     @apply bg-slate-800 text-white border-slate-700;
   }
-}
-
-.glass-dark {
-  background: rgba(10, 22, 40, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
 }
