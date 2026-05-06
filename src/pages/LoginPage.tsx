@@ -106,7 +106,15 @@ const LoginPage: React.FC = () => {
       await handleLoginSuccess(result.user);
     } catch (err: any) {
       console.error(err);
-      setError('Gagal masuk dengan Google.');
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Login dibatalkan.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup diblokir oleh browser. Harap izinkan popup untuk masuk dengan Google.');
+      } else if (err.message && err.message.includes('auth/configuration-not-found')) {
+        setError('Login Google belum diaktifkan di Firebase Console.');
+      } else {
+        setError(`Gagal masuk dengan Google: ${err.message || 'Error tidak diketahui'}`);
+      }
     } finally {
       setLoading(false);
     }
