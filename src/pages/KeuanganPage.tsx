@@ -205,7 +205,7 @@ const KeuanganPage: React.FC = () => {
   if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
   const coreFields = [
-    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', canEdit: true },
+    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', readonly: true, canEdit: true },
     { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, color: 'primary', readonly: true, canEdit: true },
     { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, color: 'sky', readonly: true, canEdit: true },
     { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: DollarSign, color: 'amber', readonly: true, canEdit: true },
@@ -213,7 +213,7 @@ const KeuanganPage: React.FC = () => {
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: TrendingUp, color: 'indigo', canEdit: true },
-    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', readonly: true, canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({

@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
   addDoc, 
   serverTimestamp, 
   deleteDoc, 
@@ -12,7 +9,7 @@ import {
   writeBatch 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { AngsuranLog, NotificationType } from '../types';
+import { NotificationType } from '../types';
 import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
 import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -20,40 +17,16 @@ import * as XLSX from 'xlsx';
 import { logNotification } from '../lib/notifications';
 import { useAuth } from '../context/AuthContext';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { useAngsuran } from '../hooks/useAngsuran';
 
 const AngsuranLogPage: React.FC = () => {
   const { isAdmin } = useAuth();
-  const [logs, setLogs] = useState<AngsuranLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { logs, totals, loading } = useAngsuran();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
   const [localMasuk, setLocalMasuk] = useState('0');
   const [localKeluar, setLocalKeluar] = useState('0');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-
-  useEffect(() => {
-    const q = query(collection(db, 'angsuran_logs'), orderBy('tanggal', 'asc'), orderBy('created_at', 'asc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      let runningTotal = 0;
-      const data = snap.docs.map(doc => {
-        const d = doc.data();
-        runningTotal += (Number(d.masuk) || 0) - (Number(d.keluar) || 0);
-        return { id: doc.id, ...d, total: runningTotal } as AngsuranLog;
-      });
-      setLogs([...data].reverse());
-      setLoading(false);
-    }, (error) => {
-      console.error("Error loading logs:", error);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const totals = useMemo(() => {
-    const masuk = logs.reduce((acc, curr) => acc + (Number(curr.masuk) || 0), 0);
-    const keluar = logs.reduce((acc, curr) => acc + (Number(curr.keluar) || 0), 0);
-    return { masuk, keluar, saldo: masuk - keluar };
-  }, [logs]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();

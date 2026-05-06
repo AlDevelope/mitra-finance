@@ -24,11 +24,12 @@ import { NotificationType } from '../types';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { cn } from '../lib/utils';
 
+import { useKosan } from '../hooks/useKosan';
+
 const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const { isAdmin } = useAuth();
-  const [records, setRecords] = useState<KosanRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { records, totals, loading } = useKosan();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
   const [localMasuk, setLocalMasuk] = useState('0');
@@ -37,23 +38,8 @@ const KosankuPage: React.FC = () => {
   const [newModalVal, setNewModalVal] = useState(settings?.kosan_modal?.toString() || '15000000');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
-  useEffect(() => {
-    const q = query(collection(db, 'kosanku'), orderBy('created_at', 'asc'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-      let runningTotal = 0;
-      const data = snap.docs.map(doc => {
-        const d = doc.data();
-        runningTotal += (Number(d.masuk) || 0) - (Number(d.keluar) || 0);
-        return { id: doc.id, ...d, jumlah: runningTotal } as KosanRecord;
-      });
-      setRecords(data);
-      setLoading(false);
-    }, (err) => {
-      console.error("Kosan load error:", err);
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
+  // We don't need the local onSnapshot useEffect here anymore
+  // and we don't need the totals recalculation since useKosan handles it.
 
   const handleUpdateModal = async () => {
     if (!settings) return;
@@ -184,13 +170,7 @@ const KosankuPage: React.FC = () => {
     reader.readAsBinaryString(file);
   };
 
-  const totals = useMemo(() => {
-    const terkumpul = records.reduce((acc, curr) => acc + (curr.masuk || 0), 0);
-    const pengeluaran = records.reduce((acc, curr) => acc + (curr.keluar || 0), 0);
-    const modalRenov = settings?.kosan_modal || 15000000;
-    const uangBersih = terkumpul - pengeluaran;
-    return { terkumpul, pengeluaran, modalRenov, uangBersih, sisa: modalRenov - uangBersih };
-  }, [records, settings?.kosan_modal]);
+
 
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data kosan...</div>;
 
