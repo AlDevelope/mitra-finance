@@ -5,7 +5,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
-  signInAnonymously 
+  signInAnonymously,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -14,14 +15,22 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Role } from '../types';
 import { seedDatabase } from '../lib/seed';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage: React.FC = () => {
+  const { user, profile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!authLoading && user && profile?.role === Role.ADMIN) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, profile, authLoading, navigate]);
 
   const handleLoginSuccess = async (user: any) => {
     const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
@@ -103,10 +112,20 @@ const LoginPage: React.FC = () => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      
+      const additionalInfo = getAdditionalUserInfo(result);
+      if (additionalInfo?.isNewUser) {
+        // Hapus akun yang baru saja dibuat otomatis
+        await result.user.delete();
+        throw new Error('UNREGISTERED_ACCOUNT');
+      }
+
       await handleLoginSuccess(result.user);
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.message === 'UNREGISTERED_ACCOUNT') {
+        setError('Akun Anda belum terdaftar di sistem. Harap hubungi administrator.');
+      } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Login dibatalkan.');
       } else if (err.code === 'auth/popup-blocked') {
         setError('Popup diblokir oleh browser. Harap izinkan popup untuk masuk dengan Google.');

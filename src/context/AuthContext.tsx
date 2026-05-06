@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { Profile, Role } from '../types';
 
@@ -26,23 +26,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeProfile: () => void;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
         const docRef = doc(db, 'profiles', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
-        } else {
-          setProfile(null);
-        }
+        unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile({ id: docSnap.id, ...docSnap.data() } as Profile);
+          } else {
+            setProfile(null);
+          }
+          setLoading(false);
+        });
       } else {
         setProfile(null);
+        setLoading(false);
+        if (unsubscribeProfile) unsubscribeProfile();
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const isAdmin = profile?.role === Role.ADMIN;
