@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Keuangan } from '../types';
@@ -33,11 +33,13 @@ export const useKeuangan = () => {
 
   // Merge the dynamically computed uang_renov (which is sisa modal from kosanku)
   // and uang_cash (which is sisa saldo from angsuran_logs)
-  const computedData = data ? {
-    ...data,
-    uang_renov: kosanTotals.sisa, // Override uang_renov with sisa_modal
-    uang_cash: angsuranTotals.saldo // Override uang_cash with sisa_saldo from angsuran
-  } : null;
+  const computedData = useMemo(() => {
+    return data ? {
+      ...data,
+      uang_renov: kosanTotals.sisa, // Override uang_renov with sisa_modal
+      uang_cash: angsuranTotals.saldo // Override uang_cash with sisa_saldo from angsuran
+    } : null;
+  }, [data, kosanTotals.sisa, angsuranTotals.saldo]);
 
   return { 
     data: computedData, 
