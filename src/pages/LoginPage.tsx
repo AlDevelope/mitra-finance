@@ -36,7 +36,7 @@ const LoginPage: React.FC = () => {
     const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
     if (!profileSnap.exists()) {
       await setDoc(doc(db, 'profiles', user.uid), {
-        full_name: user.displayName || 'Admin Mitra Finance 99',
+        full_name: user.displayName || 'Mitra Finance 99',
         role: Role.ADMIN, // Default to admin for first login in this demo
         created_at: new Date().toISOString()
       });

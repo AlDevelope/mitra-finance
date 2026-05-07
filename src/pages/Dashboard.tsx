@@ -203,7 +203,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <div>
-            <h2 className="text-xl md:text-4xl font-black tracking-tight text-primary">Dashboard Admin</h2>
+            <h2 className="text-xl md:text-4xl font-black tracking-tight text-primary uppercase">Mitra Finance 99</h2>
             <p className="text-[10px] md:text-base text-gray-500 mt-0.5 md:mt-1 font-medium italic">Sistem Pemantauan Digital Mitra Finance 99</p>
           </div>
         </div>

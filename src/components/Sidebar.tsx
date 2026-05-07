@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             MF99
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight truncate w-32">Mitra Finance 99</h1>
+            <h1 className="font-bold text-lg leading-tight">Mitra Finance 99</h1>
             <p className="text-xs text-white/50">Digital System</p>
           </div>
         </div>
@@ -91,8 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
       <div className="p-6 border-t border-white/10 shrink-0">
         <div className="mb-4">
-          <p className="text-xs text-white/50 mb-1">Signed in as</p>
-          <p className="font-medium truncate">{profile?.full_name || 'Admin'}</p>
+          <p className="font-bold text-sm tracking-tight text-white">Mitra Finance 99</p>
         </div>
         <button
           onClick={handleLogout}
