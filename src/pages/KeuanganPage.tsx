@@ -70,7 +70,21 @@ const KeuanganPage: React.FC = () => {
 
   useEffect(() => {
     if (keuangan) {
-      setForm({ ...keuangan, uang_nasabah: totalSisaHutangNasabah });
+      const dipinjamkan = (keuangan.uang_tanah_lama || 0) + 
+                          (keuangan.uang_tanah_baru || 0) + 
+                          (keuangan.uang_stokbit || 0) + 
+                          (keuangan.uang_renov || 0);
+                          
+      const bankNeo = (keuangan.uang_cash || 0) - dipinjamkan;
+      const totalUntung = totalSisaHutangNasabah + bankNeo + dipinjamkan;
+
+      setForm({ 
+        ...keuangan, 
+        uang_nasabah: totalSisaHutangNasabah,
+        uang_dipinjamkan: dipinjamkan,
+        uang_bank_neo: bankNeo,
+        total_keuntungan: totalUntung
+      });
     }
   }, [keuangan, totalSisaHutangNasabah]);
 

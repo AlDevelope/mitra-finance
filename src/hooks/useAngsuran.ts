@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { AngsuranLog } from '../types';
 
 export function useAngsuran() {
@@ -30,6 +30,7 @@ export function useAngsuran() {
         console.error('Error fetching angsuran logs:', err);
         setError('Gagal memuat histori log');
         setLoading(false);
+        handleFirestoreError(err, OperationType.LIST, 'angsuran_logs');
       }
     );
 

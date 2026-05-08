@@ -59,6 +59,11 @@ const LoginPage: React.FC = () => {
       } catch (err: any) {
         // If standard auth fails, check for custom profile account (Imported Nasabah)
         if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+           // For security, we'll sign in anonymously to have a valid session to query profiles
+           if (!auth.currentUser) {
+             await signInAnonymously(auth);
+           }
+
            // Fallback to custom profile check
            const { collection, getDocs, query, where } = await import('firebase/firestore');
            const profQuery = query(collection(db, 'profiles'), where('email', '==', email), where('password', '==', password));
@@ -66,10 +71,6 @@ const LoginPage: React.FC = () => {
            
            if (!profSnap.empty) {
               const profData = profSnap.docs[0].data();
-              // For security, we'll sign in anonymously to have a valid session
-              if (!auth.currentUser) {
-                await signInAnonymously(auth);
-              }
               
               if (profData.role === Role.CUSTOMER && profData.nasabah_id) {
                 // Link official UID to this profile data for security rules
@@ -86,6 +87,9 @@ const LoginPage: React.FC = () => {
                 navigate('/dashboard');
               }
               return;
+           } else {
+              // Sign out if no profile found
+              await auth.signOut();
            }
         }
         throw err; // Re-throw if no custom profile found either

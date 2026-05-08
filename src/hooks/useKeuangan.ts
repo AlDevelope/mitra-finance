@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Keuangan } from '../types';
 import { useKosan } from './useKosan';
 import { useAngsuran } from './useAngsuran';
@@ -26,6 +26,7 @@ export const useKeuangan = () => {
       console.error("Firestore Error (Keuangan):", err);
       setError(err.message);
       setLoading(false);
+      handleFirestoreError(err, OperationType.GET, 'keuangan/summary');
     });
 
     return () => unsub();

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Nasabah, NasabahStatus, NotificationType } from '../types';
 import { 
@@ -101,6 +101,7 @@ const Dashboard: React.FC = () => {
     }, (err) => {
       console.error("Dashboard Nasabah Error:", err);
       setNasabahError(err.message);
+      handleFirestoreError(err, OperationType.LIST, 'nasabah');
     });
     return unsub;
   }, []);

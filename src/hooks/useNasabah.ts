@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Nasabah } from '../types';
 
 export const useNasabah = () => {
@@ -17,6 +17,7 @@ export const useNasabah = () => {
       console.error("Firestore Error (Nasabah):", err);
       setError(err.message);
       setLoading(false);
+      handleFirestoreError(err, OperationType.LIST, 'nasabah');
     });
 
     return () => unsub();

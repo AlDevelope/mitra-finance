@@ -14,7 +14,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 export const TagihanPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { profile } = useAuth();
+  const { profile, user, loading: authLoading } = useAuth();
   const [nasabah, setNasabah] = useState<Nasabah | null>(null);
   const [history, setHistory] = useState<Angsuran[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,13 @@ export const TagihanPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to resolve
+    
+    if (!user) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     if (!effectiveNasabahId) {
        setLoading(false);
        return;

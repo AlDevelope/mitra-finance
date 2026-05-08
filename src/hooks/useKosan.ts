@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { KosanRecord } from '../types';
 import { useSettings } from './useSettings';
 
@@ -32,6 +32,7 @@ export function useKosan() {
         console.error('Error fetching kosan records:', err);
         setError('Gagal memuat data kosan');
         setLoading(false);
+        handleFirestoreError(err, OperationType.LIST, 'kosanku');
       }
     );
 

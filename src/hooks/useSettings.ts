@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Settings } from '../types';
 
 export const useSettings = () => {
@@ -29,6 +29,7 @@ export const useSettings = () => {
       console.error('Error fetching settings:', err);
       setError(err.message);
       setLoading(false);
+      handleFirestoreError(err, OperationType.GET, 'settings/app');
     });
 
     return () => unsubscribe();
