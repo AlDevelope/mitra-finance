@@ -45,7 +45,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
 
       const text = isLunas 
         ? `Selamat ${nasabah.nama}! Angsuran ${nasabah.barang} Anda di Mitra Finance 99 telah LUNAS TOTAL. Berikut sertifikat pelunasannya.`
-        : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.`;
+        : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.\n\nBarang: ${nasabah.barang}\nCicilan Ke: ${angsuranTerbayar}\nSisa Cicilan: ${sisaMinggu} Minggu\nCicilan Per Minggu: ${formatRupiah(nasabah.rp_per_angsuran)}\nSisa Hutang: ${formatRupiah(nasabah.sisa_hutang)}\n\nTerima kasih atas kepercayaannya!`;
 
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -275,24 +275,24 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
  
                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className={`${isDarkMode ? 'bg-[#0A1628]/50' : 'bg-white'} p-5 rounded-3xl border border-white/5`}>
-                    <p className={`text-[10px] font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest mb-1`}>MGU Lagi</p>
-                    <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} tracking-widest leading-none`}>{sisaMinggu}</p>
+                    <p className={`text-[10px] font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest mb-1`}>Cicilan Ke</p>
+                    <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} tracking-widest leading-none`}>{angsuranTerbayar}</p>
                   </div>
                   <div className={`${isDarkMode ? 'bg-[#0A1628]/50' : 'bg-white'} p-5 rounded-3xl border border-white/5`}>
-                    <p className={`text-[10px] font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest mb-1`}>Per MGU</p>
+                    <p className={`text-[10px] font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest mb-1`}>Cicilan</p>
                     <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} tracking-tighter leading-none`}>{formatRupiah(nasabah.rp_per_angsuran)}</p>
                   </div>
                </div>
 
                <div className={`${isDarkMode ? 'bg-[#0A1628]/30' : 'bg-white'} px-6 py-4 rounded-2xl border ${isDarkMode ? 'border-white/5' : 'border-gray-100'} flex justify-between`}>
                   <div className="text-center">
-                    <p className={`text-[9px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Sudah Bayar</p>
-                    <p className="text-lg font-black text-green-500 mt-1">{angsuranTerbayar} <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-bold tracking-normal`}>/ {totalAngsuran}</span></p>
+                    <p className={`text-[9px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Tenor</p>
+                    <p className="text-lg font-black text-green-500 mt-1">{totalAngsuran} <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-bold tracking-normal`}>Minggu</span></p>
                   </div>
                   <div className={`w-px ${isDarkMode ? 'bg-white/10' : 'bg-gray-100'}`} />
                   <div className="text-center">
-                    <p className={`text-[9px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Belum Bayar</p>
-                    <p className="text-lg font-black text-accent mt-1">{sisaMinggu} <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-bold tracking-normal`}>MGU</span></p>
+                    <p className={`text-[9px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Sisa Cicilan</p>
+                    <p className="text-lg font-black text-accent mt-1">{sisaMinggu} <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-bold tracking-normal`}>Minggu</span></p>
                   </div>
                </div>
             </div>

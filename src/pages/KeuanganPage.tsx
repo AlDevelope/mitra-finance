@@ -70,12 +70,12 @@ const KeuanganPage: React.FC = () => {
 
   useEffect(() => {
     if (keuangan) {
-      const dipinjamkan = (keuangan.uang_tanah_lama || 0) + 
-                          (keuangan.uang_tanah_baru || 0) + 
-                          (keuangan.uang_stokbit || 0) + 
-                          (keuangan.uang_renov || 0);
+      const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
+                          Number(keuangan.uang_tanah_baru || 0) + 
+                          Number(keuangan.uang_stokbit || 0) + 
+                          Number(keuangan.uang_renov || 0);
                           
-      const bankNeo = (keuangan.uang_cash || 0) - dipinjamkan;
+      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
       const totalUntung = totalSisaHutangNasabah + bankNeo + dipinjamkan;
 
       setForm({ 
@@ -193,13 +193,13 @@ const KeuanganPage: React.FC = () => {
     
     // Formula calculations as per user request:
     // 1. Uang yang dipinjamkan = Uang Tanah Lama + uang tanah baru + uang stokbit + uang renov
-    const dipinjamkan = (newForm.uang_tanah_lama || 0) + 
-                        (newForm.uang_tanah_baru || 0) + 
-                        (newForm.uang_stokbit || 0) + 
-                        (newForm.uang_renov || 0);
+    const dipinjamkan = Number(newForm.uang_tanah_lama || 0) + 
+                        Number(newForm.uang_tanah_baru || 0) + 
+                        Number(newForm.uang_stokbit || 0) + 
+                        Number(newForm.uang_renov || 0);
     
     // 2. uang yang ada (bank neo) = Uang cash - uang yang di pinjamkan
-    const bankNeo = (newForm.uang_cash || 0) - dipinjamkan;
+    const bankNeo = Number(newForm.uang_cash || 0) - dipinjamkan;
 
     // 3. uang yang ada (nasabah) = sum of all sisa hutang (handled via useEffect)
     
@@ -219,7 +219,7 @@ const KeuanganPage: React.FC = () => {
   if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
   const coreFields = [
-    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', readonly: true, canEdit: true },
+    { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', canEdit: true },
     { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, color: 'primary', readonly: true, canEdit: true },
     { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, color: 'sky', readonly: true, canEdit: true },
     { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: DollarSign, color: 'amber', readonly: true, canEdit: true },
@@ -227,7 +227,7 @@ const KeuanganPage: React.FC = () => {
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: TrendingUp, color: 'indigo', canEdit: true },
-    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', readonly: true, canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({
@@ -368,7 +368,15 @@ const KeuanganPage: React.FC = () => {
                 <input
                    type="text"
                    readOnly={field.readonly}
-                   value={formatRupiah(form?.[field.key] || 0)}
+                   value={
+                     field.key === 'uang_bank_neo'
+                       ? formatRupiah(Number(form?.uang_cash || 0) - (Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0)))
+                       : field.key === 'uang_dipinjamkan'
+                       ? formatRupiah(Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0))
+                       : field.key === 'total_keuntungan'
+                       ? formatRupiah(Number(form?.uang_nasabah || 0) + Number(form?.uang_cash || 0))
+                       : formatRupiah(form?.[field.key] || 0)
+                   }
                    onChange={(e) => handleChange(field.key, e.target.value)}
                    className={cn(
                      "w-full bg-transparent text-[10px] sm:text-xs md:text-2xl font-black text-slate-900 dark:text-slate-100 outline-none border-b-2 border-transparent transition-all truncate",

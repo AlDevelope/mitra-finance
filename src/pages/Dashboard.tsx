@@ -26,26 +26,42 @@ import {
   Cell, 
   ResponsiveContainer, 
   Tooltip, 
-  BarChart, 
-  Bar, 
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
   XAxis, 
   YAxis, 
-  CartesianGrid,
-  Legend
+  CartesianGrid
 } from 'recharts';
 import { cn } from '../lib/utils';
+import { useAngsuran } from '../hooks/useAngsuran';
 
 const Dashboard: React.FC = () => {
   const { data: keuangan, loading: keuanganLoading, error: keuanganError } = useKeuangan();
   const { settings } = useSettings();
   const navigate = useNavigate();
+  const { logs } = useAngsuran();
   const [totalNasabah, setTotalNasabah] = useState(0);
   const [activeNasabah, setActiveNasabah] = useState(0);
   const [lunasNasabah, setLunasNasabah] = useState(0);
   const [totalSisaHutang, setTotalSisaHutang] = useState(0);
   const [nasabahError, setNasabahError] = useState<string | null>(null);
-  
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [chartType, setChartType] = useState<'keuangan' | 'properti' | 'keuntungan' | 'trend'>('trend');
 
+  // Aggregate logs by date (or just take latest N logs) for trend
+  const trendData = React.useMemo(() => {
+    // Reverse logs to chronologically ascending because we had them descending
+    const ascLogs = [...logs].reverse();
+    // Group by month-year or just daily? Let's do simple sequential
+    return ascLogs.slice(-20).map((l, i) => ({
+      name: l.tanggal.substring(0, 10), // Shorten date
+      Kenaikan: l.masuk || 0,
+      Penurunan: l.keluar || 0,
+    }));
+  }, [logs]);
+  
   const labels = {
     uang_tanah_lama: settings?.category_labels?.uang_tanah_lama || 'Tanah Lama',
     uang_tanah_baru: settings?.category_labels?.uang_tanah_baru || 'Tanah Baru',
@@ -59,6 +75,15 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
+    let unsubNotifs = () => {};
+    
+    import('firebase/firestore').then(({ query, collection, orderBy, limit, onSnapshot }) => {
+      const q = query(collection(db, 'notifications'), orderBy('created_at', 'desc'), limit(5));
+      unsubNotifs = onSnapshot(q, (snap) => {
+        setRecentActivities(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+    }).catch(console.error);
+
     const unsub = onSnapshot(collection(db, 'nasabah'), (snap) => {
       const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Nasabah));
       setTotalNasabah(snap.size);
@@ -103,8 +128,11 @@ const Dashboard: React.FC = () => {
       setNasabahError(err.message);
       handleFirestoreError(err, OperationType.LIST, 'nasabah');
     });
-    return unsub;
-  }, []);
+    return () => {
+      unsub();
+      unsubNotifs();
+    };
+  }, [settings]);
 
   if (keuanganLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -140,13 +168,13 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  const calculatedUangDipinjamkan = (keuangan?.uang_tanah_lama || 0) + 
-                                    (keuangan?.uang_tanah_baru || 0) + 
-                                    (keuangan?.uang_stokbit || 0) + 
-                                    (keuangan?.uang_renov || 0);
+  const calculatedUangDipinjamkan = Number(keuangan?.uang_tanah_lama || 0) + 
+                                    Number(keuangan?.uang_tanah_baru || 0) + 
+                                    Number(keuangan?.uang_stokbit || 0) + 
+                                    Number(keuangan?.uang_renov || 0);
 
   // Bank Neo derived: Uang Cash - Uang yang dipinjamkan
-  const calculatedBankNeo = (keuangan?.uang_cash || 0) - calculatedUangDipinjamkan;
+  const calculatedBankNeo = Number(keuangan?.uang_cash || 0) - calculatedUangDipinjamkan;
 
   // Total Untung: Uang Nasabah + Uang Bank Neo + Uang Dipinjamkan
   const calculatedTotalUntung = totalSisaHutang + calculatedBankNeo + calculatedUangDipinjamkan;
@@ -186,6 +214,22 @@ const Dashboard: React.FC = () => {
     { name: 'Stokbit', value: keuangan?.uang_stokbit || 0 },
     { name: 'Renov', value: keuangan?.uang_renov || 0 }
   ];
+
+  const profitData = [
+    { name: 'Nasabah', value: totalSisaHutang },
+    { name: 'Neo', value: calculatedBankNeo },
+    { name: 'Dipinjam', value: calculatedUangDipinjamkan },
+  ];
+
+  const getActiveChartData = () => {
+    switch(chartType) {
+      case 'properti': return landData;
+      case 'keuntungan': return profitData;
+      case 'trend': return trendData;
+      case 'keuangan':
+      default: return barData;
+    }
+  };
 
   return (
     <div className="space-y-8 pb-10">
@@ -283,43 +327,74 @@ const Dashboard: React.FC = () => {
 
         {/* Financial Distribution */}
         <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] lg:col-span-2">
-          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
-            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-accent" />
-            Perbandingan Aset Keuangan
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
+            <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+              Perbandingan Aset Keuangan
+            </h3>
+            <select
+              value={chartType}
+              onChange={(e) => setChartType(e.target.value as any)}
+              className="px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-white/5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 outline-none"
+            >
+              <option value="keuangan">Uang Cash, Neo & Dipinjam</option>
+              <option value="properti">Aset Properti & Stokbit</option>
+              <option value="keuntungan">Total Keuntungan</option>
+              <option value="trend">Trend Keuangan</option>
+            </select>
+          </div>
           <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <AreaChart data={getActiveChartData()} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1B4F72" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#1B4F72" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorKenaikan" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorPenurunan" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis 
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 12, fontWeight: 600, fill: '#94a3b8' }}
+                  tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
+                  tickMargin={10}
                 />
                 <YAxis hide />
                 <Tooltip 
-                  cursor={{ fill: 'transparent' }}
-                  content={({ active, payload }) => {
+                  content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-50">
-                          <p className="text-xs font-bold text-gray-400 mb-1 uppercase">{payload[0].payload.name}</p>
-                          <p className="text-sm font-bold text-primary">{formatRupiah(payload[0].value as number)}</p>
+                        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-white/5">
+                          <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase">{label}</p>
+                          {payload.map((entry: any, index: number) => (
+                            <p key={index} className="text-sm font-black" style={{ color: entry.color || entry.stroke }}>
+                              {entry.name}: {formatRupiah(entry.value as number)}
+                            </p>
+                          ))}
                         </div>
                       );
                     }
                     return null;
                   }}
                 />
-                <Bar 
-                  dataKey="value" 
-                  fill="#1B4F72" 
-                  radius={[10, 10, 10, 10]} 
-                  barSize={40}
-                  animationBegin={200}
-                />
-              </BarChart>
+                {chartType === 'trend' ? (
+                  <>
+                    <Area type="monotone" dataKey="Kenaikan" stroke="#10b981" fillOpacity={1} fill="url(#colorKenaikan)" strokeWidth={3} />
+                    <Area type="monotone" dataKey="Penurunan" stroke="#ef4444" fillOpacity={1} fill="url(#colorPenurunan)" strokeWidth={3} />
+                  </>
+                ) : (
+                  <Area type="monotone" dataKey="value" stroke="#1B4F72" name="Jumlah" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                )}
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </section>
@@ -389,6 +464,58 @@ const Dashboard: React.FC = () => {
                  </div>
               </div>
            </div>
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px] lg:col-span-2">
+            <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+              Aktivitas Terbaru
+            </h3>
+            <div className="space-y-4">
+              {recentActivities.length === 0 ? (
+                <p className="text-sm text-gray-400">Belum ada aktivitas.</p>
+              ) : (
+                recentActivities.map(act => (
+                  <div key={act.id} className="flex gap-4 items-start p-4 bg-gray-50 dark:bg-white/5 rounded-2xl">
+                    <div className={cn("p-2 rounded-xl text-white mt-1 flex-shrink-0", act.type === 'success' ? 'bg-green-500' : act.type === 'warning' ? 'bg-orange-500' : 'bg-primary')}>
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{act.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{act.message}</p>
+                      <p className="text-[10px] text-gray-400 mt-2 font-medium">{act.created_at?.toDate ? formatDisplayDate(act.created_at.toDate()) : 'Baru saja'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+        </section>
+
+        <section className="glass p-6 md:p-8 rounded-[32px] md:rounded-[40px]">
+          <h3 className="text-base md:text-lg font-bold flex items-center gap-2 mb-4 md:mb-6">
+              <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+              Akses Cepat
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+             <button onClick={() => navigate('/nasabah/add')} className="p-4 bg-primary text-white rounded-2xl flex items-center justify-between group hover:bg-primary/90 transition-all">
+                <span className="font-bold text-sm">Tambah Data Nasabah</span>
+                <ArrowUpRight className="w-5 h-5 text-white/50 group-hover:text-white transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+             </button>
+             <button onClick={() => navigate('/simulasi')} className="p-4 bg-accent text-white rounded-2xl flex items-center justify-between group hover:bg-accent/90 transition-all">
+                <span className="font-bold text-sm">Simulasi Kredit</span>
+                <ArrowUpRight className="w-5 h-5 text-white/50 group-hover:text-white transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+             </button>
+             <button onClick={() => navigate('/nasabah')} className="p-4 bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 rounded-2xl flex items-center justify-between group hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+                <span className="font-bold text-sm">Lihat Semua Daftar</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+             </button>
+             <button onClick={() => navigate('/angsuran')} className="p-4 bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-200 rounded-2xl flex items-center justify-between group hover:bg-gray-100 dark:hover:bg-white/10 transition-all">
+                <span className="font-bold text-sm">Log Angsuran</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-all transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+             </button>
+          </div>
         </section>
       </div>
     </div>

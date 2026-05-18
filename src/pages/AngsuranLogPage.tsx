@@ -11,7 +11,7 @@ import {
 import { db } from '../lib/firebase';
 import { NotificationType } from '../types';
 import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
-import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, Upload, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { logNotification } from '../lib/notifications';
@@ -92,6 +92,30 @@ const AngsuranLogPage: React.FC = () => {
     } catch (err: any) {
       alert(`Gagal menghapus data: ${err.message}`);
     }
+  };
+
+  const handleExport = () => {
+    // Reverse logs so oldest is at the top of the exported Excel
+    const exportData = [...logs].reverse().map(l => ({
+      'Tanggal': l.tanggal,
+      'Keterangan': l.keterangan,
+      'Pemasukan': l.masuk,
+      'Pengeluaran': l.keluar
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Auto-fit columns
+    ws['!cols'] = [
+      { wch: 15 }, // Tanggal
+      { wch: 40 }, // Keterangan
+      { wch: 20 }, // Pemasukan
+      { wch: 20 }, // Pengeluaran
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Log Angsuran');
+    XLSX.writeFile(wb, `Log_Angsuran_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,8 +236,14 @@ const AngsuranLogPage: React.FC = () => {
               <Trash2 className="w-4 h-4" /> Hapus Semua
             </button>
           )}
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 rounded-[24px] font-bold text-sm hover:bg-gray-50 transition-all"
+          >
+            <Download className="w-5 h-5" /> Export Excel
+          </button>
           <label className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-white/5 text-gray-600 dark:text-gray-400 rounded-[24px] font-bold text-sm cursor-pointer hover:bg-gray-50 transition-all">
-            <Download className="w-5 h-5" /> Import Angsuran
+            <Upload className="w-5 h-5" /> Import Angsuran
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
           </label>
           <button 

@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { formatRupiah } from '../lib/formulas';
-import { Calculator, TrendingUp, Calendar, Clock, DollarSign, Wallet } from 'lucide-react';
+import { Calculator, TrendingUp, Calendar, Clock, DollarSign, Wallet, Share2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSettings } from '../hooks/useSettings';
+import { SimulasiShareCard } from '../components/SimulasiShareCard';
 
 const SimulasiPage: React.FC = () => {
   const { settings } = useSettings();
   const [harga, setHarga] = useState(1650000);
   const [uangMuka, setUangMuka] = useState(300000);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Local state for smooth typing without cursor jumps
   const [localHarga, setLocalHarga] = useState(formatRupiah(1650000));
@@ -77,6 +79,13 @@ const SimulasiPage: React.FC = () => {
           <h2 className="text-3xl font-black tracking-tight text-primary dark:text-sky-400">Mitra Finance 99</h2>
           <p className="text-gray-500 dark:text-slate-400 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
         </div>
+        <button 
+          onClick={() => setShowShareModal(true)}
+          className="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-2xl flex items-center gap-2 transition-transform active:scale-95 shadow-lg shadow-primary/20"
+        >
+          <Share2 className="w-5 h-5" />
+          Bagikan Simulasi
+        </button>
       </header>
 
       {/* Inputs */}
@@ -221,6 +230,19 @@ const SimulasiPage: React.FC = () => {
             </div>
          </div>
       </section>
+
+      {showShareModal && (
+        <SimulasiShareCard 
+          harga={harga}
+          uangMuka={uangMuka}
+          pendanaan={pendanaan}
+          weeklyTenors={weeklyTenors}
+          monthlyTenors={monthlyTenors}
+          calculateCicilan={calculateCicilan}
+          calculateTotal={calculateTotal}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 };
