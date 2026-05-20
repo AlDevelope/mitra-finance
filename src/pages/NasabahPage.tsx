@@ -32,7 +32,7 @@ const NasabahPage: React.FC = () => {
   const handleExport = () => {
     const exportData = filteredList.map(n => ({
       'Nama': n.nama,
-      'Sudah di terima': n.barang,
+      'Barang': n.barang,
       'Uang Muka': n.uang_muka,
       'Jumlah Angsuran': n.jumlah_angsuran,
       'Rp per Angsuran': n.rp_per_angsuran,
@@ -45,6 +45,22 @@ const NasabahPage: React.FC = () => {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Auto-fit columns for neatness
+    ws['!cols'] = [
+      { wch: 25 }, // Nama
+      { wch: 20 }, // Barang
+      { wch: 15 }, // Uang Muka
+      { wch: 15 }, // Jumlah Angsuran
+      { wch: 18 }, // Rp per Angsuran
+      { wch: 18 }, // Angsuran Terbayar
+      { wch: 15 }, // Sisa Angsuran
+      { wch: 20 }, // Sisa Hutang
+      { wch: 20 }, // WhatsApp
+      { wch: 15 }, // Status
+      { wch: 30 }, // Catatan
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Nasabah');
     XLSX.writeFile(wb, `Data_Nasabah_${new Date().toISOString().split('T')[0]}.xlsx`);

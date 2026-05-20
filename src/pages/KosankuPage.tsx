@@ -118,6 +118,32 @@ const KosankuPage: React.FC = () => {
 
   const [isImporting, setImporting] = useState(false);
 
+  const handleExport = () => {
+    // Export oldest to newest, just pass records as they are from oldest to newest
+    const exportData = records.map(r => ({
+      'Bulan': r.bulan,
+      'Masuk': r.masuk,
+      'Keluar': r.keluar,
+      'Keterangan': r.keterangan || '-',
+      'Saldo': r.jumlah
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    
+    // Auto-fit columns
+    ws['!cols'] = [
+      { wch: 20 }, // Bulan
+      { wch: 20 }, // Masuk
+      { wch: 20 }, // Keluar
+      { wch: 30 }, // Keterangan
+      { wch: 20 }, // Saldo
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Kosanku');
+    XLSX.writeFile(wb, `Data_Kosanku_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,6 +223,12 @@ const KosankuPage: React.FC = () => {
               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /> Hapus Semua
             </button>
           )}
+          <button 
+            onClick={handleExport}
+            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-gray-50 transition-all"
+          >
+            <Download className="w-4 h-4 md:w-5 md:h-5" /> Export Excel
+          </button>
           <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
             <Download className="w-4 h-4 md:w-5 md:h-5" /> Import XLSX
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
