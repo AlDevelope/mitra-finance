@@ -122,7 +122,7 @@ const AddNasabah: React.FC = () => {
                 <div className="relative group">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">Rp</span>
                   <input 
-                    type="text" required
+                    type="text"
                     className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-primary/20 transition-all outline-none font-bold"
                     value={formatDisplay(form.uang_muka)}
                     onChange={(e) => handleCurrencyChange('uang_muka', e.target.value)}
