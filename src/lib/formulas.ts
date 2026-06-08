@@ -117,7 +117,7 @@ export const generateJadwalAngsuran = (startDate: Date, totalAngsuran: number, r
       tanggalRencana: tgl,
       jumlah: rpPerAngsuran,
       sisaSetelah: sisaAngsuran,
-      sisaHutang: sisaAngsuran * rpPerAngsuran,
+      sisaCicilan: sisaAngsuran * rpPerAngsuran,
     };
   });
 };
@@ -137,7 +137,7 @@ export const generateWhatsAppMessage = (nasabah: Nasabah, angsuranKe: number) =>
     `• Barang: *${nasabah.barang}*\n` +
     `• Angsuran ke: *${angsuranKe}*\n` +
     `• Jumlah: *${formatRupiah(nasabah.rp_per_angsuran)}*\n` +
-    `• Sisa Hutang: *${formatRupiah(sisa)}*\n` +
+    `• Sisa Cicilan: *${formatRupiah(sisa)}*\n` +
     `• Sisa Angsuran: *${nasabah.sisa_angsuran} minggu lagi*\n\n` +
     `Silahkan konfirmasi pembayaran ke nomor ini.\n\n` +
     `Terima kasih 🙏\n*Mitra Finance 99*\n_Berkembang, Bertumbuh, Berinovasi_`
