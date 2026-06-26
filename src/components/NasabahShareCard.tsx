@@ -45,7 +45,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
 
       const text = isLunas 
         ? `Selamat ${nasabah.nama}! Angsuran ${nasabah.barang} Anda di Mitra Finance 99 telah LUNAS TOTAL. Berikut sertifikat pelunasannya.`
-        : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.\n\nBarang: ${nasabah.barang}\nCicilan Ke: ${angsuranTerbayar}\nSisa Cicilan: ${sisaMinggu} Minggu\nCicilan Per Minggu: ${formatRupiah(nasabah.rp_per_angsuran)}\nSisa Hutang: ${formatRupiah(nasabah.sisa_hutang)}\n\nTerima kasih atas kepercayaannya!`;
+        : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.\n\nBarang: ${nasabah.barang}\nCicilan Ke: ${angsuranTerbayar}\nSisa Cicilan: ${sisaMinggu} Minggu\nCicilan Per Minggu: ${formatRupiah(nasabah.rp_per_angsuran)}\nSisa Cicilan: ${formatRupiah(nasabah.sisa_hutang)}\n\nTerima kasih atas kepercayaannya!`;
 
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -160,7 +160,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                         <p className="text-xl font-black text-gray-800">{nasabah.jumlah_angsuran} Minggu</p>
                      </div>
                      <div>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sisa Hutang</p>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sisa Cicilan</p>
                         <p className="text-xl font-black text-green-600">Rp 0</p>
                      </div>
                   </div>
