@@ -117,7 +117,7 @@ export const generateJadwalAngsuran = (startDate: Date, totalAngsuran: number, r
       tanggalRencana: tgl,
       jumlah: rpPerAngsuran,
       sisaSetelah: sisaAngsuran,
-      sisaCicilan: sisaAngsuran * rpPerAngsuran,
+      sisaHutang: sisaAngsuran * rpPerAngsuran,
     };
   });
 };
