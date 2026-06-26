@@ -312,7 +312,7 @@ const NasabahDetail: React.FC = () => {
                 <p className="font-bold text-gray-700">{formatRupiah(nasabah.total_hutang)}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Sisa Hutang</p>
+                <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Sisa Cicilan</p>
                 <p className="font-bold text-accent">{formatRupiah(nasabah.sisa_hutang)}</p>
               </div>
               <div className="space-y-1">
@@ -420,7 +420,7 @@ const NasabahDetail: React.FC = () => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
               <Wallet className="w-5 h-5 text-accent" />
-              Sisa Hutang
+              Sisa Cicilan
             </h3>
             <div className="space-y-1">
               <p className="text-xs text-white/50 uppercase tracking-widest font-bold">Total Rupiah</p>
