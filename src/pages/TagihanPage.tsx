@@ -141,7 +141,7 @@ export const TagihanPage: React.FC = () => {
 
                <div className="flex-1 space-y-6">
                   <div>
-                    <p className="text-xs text-white/50 uppercase tracking-widest font-bold">Sisa Hutang Berjalan</p>
+                    <p className="text-xs text-white/50 uppercase tracking-widest font-bold">Sisa Cicilan Berjalan</p>
                     <h4 className="text-4xl font-bold">{formatRupiah(nasabah.sisa_hutang)}</h4>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
