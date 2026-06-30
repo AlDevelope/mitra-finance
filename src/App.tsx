@@ -15,6 +15,7 @@ import AngsuranLogPage from './pages/AngsuranLogPage';
 import SimulasiPage from './pages/SimulasiPage';
 import SystemSettings from './pages/SystemSettings';
 import NotificationsPage from './pages/NotificationsPage';
+import RemindersPage from './pages/RemindersPage';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/nasabah/tambah" element={<AddNasabah />} />
             <Route path="/nasabah/:id" element={<NasabahDetail />} />
             <Route path="/nasabah/:id/edit" element={<EditNasabah />} />
+            <Route path="/tagihan" element={<RemindersPage />} />
             <Route path="/keuangan" element={<KeuanganPage />} />
             <Route path="/kosanku" element={<KosankuPage />} />
             <Route path="/angsuran" element={<AngsuranLogPage />} />
