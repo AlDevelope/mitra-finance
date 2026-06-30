@@ -162,7 +162,7 @@ const LaporanPage: React.FC = () => {
                   <span>{b.value} nasabah</span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={b.color + ' h-full rounded-full transition-all'} style= width: (b.value / maxBar * 100) + '%'  />
+                  <div className={b.color + ' h-full rounded-full transition-all'} style={ { width: ((b.value / maxBar) * 100) + '%' } } />
                 </div>
               </div>
             ))}
