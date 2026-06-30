@@ -16,6 +16,10 @@ import SimulasiPage from './pages/SimulasiPage';
 import SystemSettings from './pages/SystemSettings';
 import NotificationsPage from './pages/NotificationsPage';
 import RemindersPage from './pages/RemindersPage';
+import LaporanPage from './pages/LaporanPage';
+import DendaPage from './pages/DendaPage';
+import PembayaranSebagianPage from './pages/PembayaranSebagianPage';
+import DokumenPage from './pages/DokumenPage';
 
 export default function App() {
   return (
@@ -34,6 +38,10 @@ export default function App() {
             <Route path="/nasabah/:id" element={<NasabahDetail />} />
             <Route path="/nasabah/:id/edit" element={<EditNasabah />} />
             <Route path="/tagihan" element={<RemindersPage />} />
+            <Route path="/laporan" element={<LaporanPage />} />
+            <Route path="/denda" element={<DendaPage />} />
+            <Route path="/pembayaran-sebagian" element={<PembayaranSebagianPage />} />
+            <Route path="/dokumen" element={<DokumenPage />} />
             <Route path="/keuangan" element={<KeuanganPage />} />
             <Route path="/kosanku" element={<KosankuPage />} />
             <Route path="/angsuran" element={<AngsuranLogPage />} />
