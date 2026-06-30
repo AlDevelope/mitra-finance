@@ -56,7 +56,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
         });
       } else {
         // Fallback: Open WA with text and let them attach the downloaded image
-        const waLink = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        const waLink = `{{https://wa.me/?text=${encodeURIComponent(text}})}`;
         window.open(waLink, '_blank');
         
         // Also trigger download as fallback for the image
@@ -230,7 +230,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     </div>
                     <div className={`text-right flex flex-col`}>
                        <span className={`text-[8px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest text-right leading-none`}>Status</span>
-                       <span className="text-[10px] font-black text-green-500 uppercase tracking-widest leading-none mt-1">VERIFIED \u2705</span>
+                       <span className="text-[10px] font-black text-green-500 uppercase tracking-widest leading-none mt-1">VERIFIED ✅</span>
                     </div>
                  </div>
                )}
