@@ -71,5 +71,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // Pembayaran Sebagian rules (koleksi baru, additive - tidak memengaruhi koleksi lain)
+    match /pembayaran_sebagian/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
