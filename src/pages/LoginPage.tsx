@@ -147,8 +147,8 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[#0A1628] via-primary to-[#0A1628] animate-gradient bg-[length:400%_400%]">
       <motion.div 
-        initial= opacity: 0, y: 20 
-        animate= opacity: 1, y: 0 
+        initial={ { opacity: 0, y: 20 } }
+        animate={ { opacity: 1, y: 0 } }
         className="glass w-full max-w-[420px] p-8 rounded-[40px] shadow-glass flex flex-col items-center"
       >
         <div className="mb-6 relative">
