@@ -12,7 +12,9 @@ import {
   History,
   Calculator,
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  Percent,
+  HandCoins
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -25,6 +27,8 @@ const menuItems = [
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
   { icon: AlertTriangle, label: 'Tagihan', path: '/tagihan' },
   { icon: BarChart3, label: 'Laporan', path: '/laporan' },
+  { icon: Percent, label: 'Denda', path: '/denda' },
+  { icon: HandCoins, label: 'Bayar Sebagian', path: '/pembayaran-sebagian' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
   { icon: Home, label: 'Kosanku', path: '/kosanku' },
   { icon: History, label: 'Angsuran', path: '/angsuran' },
