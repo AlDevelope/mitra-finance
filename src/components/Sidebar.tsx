@@ -22,6 +22,7 @@ import { useSettings } from '../hooks/useSettings';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
+  { icon: AlertTriangle, label: 'Tagihan', path: '/tagihan' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
   { icon: Home, label: 'Kosanku', path: '/kosanku' },
   { icon: History, label: 'Angsuran', path: '/angsuran' },
