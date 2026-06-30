@@ -11,7 +11,8 @@ import {
   Home,
   History,
   Calculator,
-  AlertTriangle
+  AlertTriangle,
+  BarChart3
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Users, label: 'Nasabah', path: '/nasabah' },
   { icon: AlertTriangle, label: 'Tagihan', path: '/tagihan' },
+  { icon: BarChart3, label: 'Laporan', path: '/laporan' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
   { icon: Home, label: 'Kosanku', path: '/kosanku' },
   { icon: History, label: 'Angsuran', path: '/angsuran' },
