@@ -67,7 +67,7 @@ export const BackupDataCard: React.FC = () => {
         )}
 
         <p className="text-[10px] text-gray-400 italic px-1">
-          Simpan file JSON di tempat aman \u2014 berguna untuk memulihkan data bila diperlukan. Disarankan melakukan backup secara rutin.
+          Simpan file JSON di tempat aman — berguna untuk memulihkan data bila diperlukan. Disarankan melakukan backup secara rutin.
         </p>
       </div>
     </section>
