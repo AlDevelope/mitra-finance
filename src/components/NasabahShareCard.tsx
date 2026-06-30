@@ -2,9 +2,10 @@ import React, { useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { formatRupiah, formatDisplayDate } from '../lib/formulas';
 import { Nasabah, Angsuran } from '../types';
-import { Building2, CheckCircle2, Share2, MessageCircle, X as XIcon } from 'lucide-react';
+import { Building2, CheckCircle2, Share2, MessageCircle, X as XIcon, Printer } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { generateWhatsAppMessage } from '../lib/formulas';
+import { printStrukBukti } from '../lib/printStruk';
 
 interface NasabahShareCardProps {
   nasabah: Nasabah;
@@ -55,7 +56,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
         });
       } else {
         // Fallback: Open WA with text and let them attach the downloaded image
-        const waLink = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        const waLink = `{{https://wa.me/?text=${encodeURIComponent(text}})}`;
         window.open(waLink, '_blank');
         
         // Also trigger download as fallback for the image
@@ -122,7 +123,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
             /* LUNAS CELEBRATORY CARD */
             <div ref={cardRef} className="bg-white p-12 text-gray-900 w-[500px] mx-auto rounded-[60px] flex flex-col relative overflow-hidden shadow-2xl border-[12px] border-primary/5">
                {/* Pattern Background */}
-               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#C49B48 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={ { backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '16px 16px' } } />
                
                {/* Gold Accents */}
                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[80px]" />
@@ -353,6 +354,14 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
           >
             <MessageCircle className="w-6 h-6" />
             {isProcessing ? 'Memproses Gambar...' : 'Bagikan ke WhatsApp'}
+          </button>
+          <button 
+            type="button"
+            onClick={() => printStrukBukti({ nasabah, history, settings, isLunas })}
+            className="w-full bg-[#0A1628] dark:bg-white/10 text-white py-4 rounded-[20px] font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg"
+          >
+            <Printer className="w-5 h-5" />
+            Cetak Bukti (Struk 58mm)
           </button>
           <button 
             onClick={downloadImage}
