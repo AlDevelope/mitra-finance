@@ -6,6 +6,7 @@ import { Trash2, AlertTriangle, RefreshCcw, ShieldCheck, Image as ImageIcon, Sav
 import { useNavigate } from 'react-router-dom';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useSettings } from '../hooks/useSettings';
+import { BackupDataCard } from '../components/BackupDataCard';
 
 import { logNotification } from '../lib/notifications';
 import { NotificationType } from '../types';
@@ -163,6 +164,7 @@ const SystemSettings: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <BackupDataCard />
         <section className="glass p-8 rounded-[40px]">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-accent/10 text-accent rounded-2xl">
