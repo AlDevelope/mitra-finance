@@ -77,5 +77,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    // Dokumen Nasabah rules (koleksi baru, additive - penyimpanan foto sementara)
+    match /dokumen_nasabah/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
