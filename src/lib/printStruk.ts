@@ -113,7 +113,7 @@ const buildStrukHtml = (args: PrintStrukArgs): string => {
     + '<div class="row"><span>Total Dibayar</span><span class="bold">' + esc(formatRupiah(totalDibayar)) + '</span></div>'
     + '<div class="row"><span>Sisa ' + esc(satuan) + '</span><span class="bold">' + esc(nasabah.sisa_angsuran) + ' ' + esc(satuan) + '</span></div>'
     + '<div class="row"><span>Progres</span><span class="bold">' + esc(nasabah.progress_persen) + '%</span></div>'
-    + '<div class="total-box"><div class="label">Sisa Hutang</div><div class="total-val">' + esc(formatRupiah(nasabah.sisa_hutang)) + '</div></div>'
+    + '<div class="total-box"><div class="label">Sisa Cicilan</div><div class="total-val">' + esc(formatRupiah(nasabah.sisa_hutang)) + '</div></div>'
     + lastPaymentRow
     + '<div class="divider"></div>'
     + '<div class="label center">Riwayat Pembayaran</div>'
