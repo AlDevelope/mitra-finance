@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   BarChart3,
   Percent,
-  HandCoins
+  HandCoins,
+  Camera
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: BarChart3, label: 'Laporan', path: '/laporan' },
   { icon: Percent, label: 'Denda', path: '/denda' },
   { icon: HandCoins, label: 'Bayar Sebagian', path: '/pembayaran-sebagian' },
+  { icon: Camera, label: 'Dokumen', path: '/dokumen' },
   { icon: Wallet, label: 'Keuangan', path: '/keuangan' },
   { icon: Home, label: 'Kosanku', path: '/kosanku' },
   { icon: History, label: 'Angsuran', path: '/angsuran' },
