@@ -23,9 +23,9 @@ import { logNotification } from '../lib/notifications';
 import { NotificationType } from '../types';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { cn } from '../lib/utils';
-​
+
 import { useKosan } from '../hooks/useKosan';
-​
+
 const KosankuPage: React.FC = () => {
   const { settings, updateSettings } = useSettings();
   const { isAdmin } = useAuth();
@@ -38,10 +38,10 @@ const KosankuPage: React.FC = () => {
   const [isEditingModal, setIsEditingModal] = useState(false);
   const [newModalVal, setNewModalVal] = useState(settings?.kosan_modal?.toString() || '15000000');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-​
+
   // We don't need the local onSnapshot useEffect here anymore
   // and we don't need the totals recalculation since useKosan handles it.
-​
+
   const handleUpdateModal = async () => {
     if (!settings) return;
     const modalPatch = kost === 'D2'
@@ -57,7 +57,7 @@ const KosankuPage: React.FC = () => {
       setIsEditingModal(false);
     }
   };
-​
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -74,7 +74,7 @@ const KosankuPage: React.FC = () => {
         `Berhasil mencatat data Den Kost ${kost} bulan ${form.bulan}: Masuk ${formatRupiah(form.masuk)}, Keluar ${formatRupiah(form.keluar)}.`,
         NotificationType.SUCCESS
       );
-​
+
       setShowAdd(false);
       setForm({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
       setLocalMasuk('0');
@@ -83,7 +83,7 @@ const KosankuPage: React.FC = () => {
       alert('Gagal menambah data');
     }
   };
-​
+
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus record ini?')) {
       const recordToDelete = records.find(r => r.id === id);
@@ -98,7 +98,7 @@ const KosankuPage: React.FC = () => {
       }
     }
   };
-​
+
   const handleDeleteAll = async () => {
     try {
       const batch = writeBatch(db);
@@ -120,9 +120,9 @@ const KosankuPage: React.FC = () => {
       alert(`Gagal menghapus data: ${err.message}`);
     }
   };
-​
+
   const [isImporting, setImporting] = useState(false);
-​
+
   const handleExport = () => {
     // Export oldest to newest, just pass records as they are from oldest to newest
     const exportData = records.map(r => ({
@@ -132,7 +132,7 @@ const KosankuPage: React.FC = () => {
       'Keterangan': r.keterangan || '-',
       'Saldo': r.jumlah
     }));
-​
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     
     // Auto-fit columns
@@ -143,16 +143,16 @@ const KosankuPage: React.FC = () => {
       { wch: 30 }, // Keterangan
       { wch: 20 }, // Saldo
     ];
-​
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kosanku');
     XLSX.writeFile(wb, `Data_Kosanku_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
-​
+
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-​
+
     setImporting(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -166,7 +166,7 @@ const KosankuPage: React.FC = () => {
         
         // Use range: 1 to start from Row 2 (the header row in screenshot)
         const data = XLSX.utils.sheet_to_json(ws, { range: 1 });
-​
+
         let count = 0;
         for (const row of data as any[]) {
           const bulan = row.Bulan || row.bulan || row.Month || '';
@@ -175,11 +175,11 @@ const KosankuPage: React.FC = () => {
           if (!bulan || String(bulan).toLowerCase().includes('jumlah') || String(bulan).toLowerCase().includes('modal') || String(bulan).toLowerCase().includes('sisa')) {
             continue;
           }
-​
+
           const masuk = parseExcelValue(row.Masuk || row.masuk || row['Uang Masuk'] || 0);
           const keluar = parseExcelValue(row.Keluar || row.keluar || row['Uang Keluar'] || 0);
           const keterangan = row.Keterangan || row.keterangan || row.Ket || 'Import';
-​
+
           await addDoc(collection(db, 'kosanku'), {
             bulan: String(bulan),
             masuk,
@@ -201,11 +201,11 @@ const KosankuPage: React.FC = () => {
     };
     reader.readAsBinaryString(file);
   };
-​
-​
-​
+
+
+
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data kosan...</div>;
-​
+
   return (
     <div className="space-y-8 pb-20">
       <AdminConfirmModal 
@@ -247,7 +247,7 @@ const KosankuPage: React.FC = () => {
           </button>
         </div>
       </header>
-​
+
       <div className="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 rounded-2xl w-full md:w-fit">
         {(['D1', 'D2'] as const).map((k) => (
           <button
@@ -264,7 +264,7 @@ const KosankuPage: React.FC = () => {
           </button>
         ))}
       </div>
-​
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
           <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-green-500 opacity-[0.05] transition-transform group-hover:scale-110" />
@@ -276,7 +276,7 @@ const KosankuPage: React.FC = () => {
           <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Pemasukan</p>
           <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.terkumpul)}</h3>
         </div>
-​
+
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
           <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-emerald-500 opacity-[0.05] transition-transform group-hover:scale-110" />
           <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
@@ -287,7 +287,7 @@ const KosankuPage: React.FC = () => {
           <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Uang Bersih</p>
           <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.uangBersih)}</h3>
         </div>
-​
+
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
           <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-sky-500 opacity-[0.05] transition-transform group-hover:scale-110" />
           <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
@@ -322,7 +322,7 @@ const KosankuPage: React.FC = () => {
             <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.modalRenov)}</h3>
           )}
         </div>
-​
+
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] relative overflow-hidden group border border-white/10">
           <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-accent opacity-[0.05] transition-transform group-hover:scale-110" />
           <div className="flex justify-between items-start relative z-10 mb-2 md:mb-4">
@@ -334,7 +334,7 @@ const KosankuPage: React.FC = () => {
           <h3 className="text-[11px] md:text-2xl font-black mt-0.5 md:mt-1 leading-none text-slate-900 dark:text-white">{formatRupiah(totals.sisa)}</h3>
         </div>
       </div>
-​
+
       {showAdd && (
         <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-[40px] border-2 border-primary/10">
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -376,7 +376,7 @@ const KosankuPage: React.FC = () => {
           </form>
         </motion.section>
       )}
-​
+
       <div className="glass rounded-[40px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[320px] md:min-w-[600px]">
@@ -415,6 +415,5 @@ const KosankuPage: React.FC = () => {
     </div>
   );
 };
-​
+
 export default KosankuPage;
-​

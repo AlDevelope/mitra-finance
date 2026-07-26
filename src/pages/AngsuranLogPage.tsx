@@ -19,7 +19,7 @@ import { logNotification } from '../lib/notifications';
 import { useAuth } from '../context/AuthContext';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useAngsuran } from '../hooks/useAngsuran';
-​
+
 const AngsuranLogPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const { logs, totals, loading } = useAngsuran();
@@ -28,21 +28,21 @@ const AngsuranLogPage: React.FC = () => {
   const [localMasuk, setLocalMasuk] = useState('0');
   const [localKeluar, setLocalKeluar] = useState('0');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-​
+
   // Edit state (edit in-place untuk log yang sudah tersimpan)
   const [editLog, setEditLog] = useState<AngsuranLog | null>(null);
   const [editForm, setEditForm] = useState({ tanggal: '', keterangan: '', masuk: 0, keluar: 0 });
   const [editMasukStr, setEditMasukStr] = useState('0');
   const [editKeluarStr, setEditKeluarStr] = useState('0');
   const [savingEdit, setSavingEdit] = useState(false);
-​
+
   const openEdit = (l: AngsuranLog) => {
     setEditLog(l);
     setEditForm({ tanggal: l.tanggal, keterangan: l.keterangan, masuk: l.masuk || 0, keluar: l.keluar || 0 });
     setEditMasukStr((l.masuk || 0) > 0 ? formatRupiah(l.masuk) : '0');
     setEditKeluarStr((l.keluar || 0) > 0 ? formatRupiah(l.keluar) : '0');
   };
-​
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editLog) return;
@@ -54,13 +54,13 @@ const AngsuranLogPage: React.FC = () => {
         masuk: Number(editForm.masuk),
         keluar: Number(editForm.keluar)
       });
-​
+
       await logNotification(
         'Log Keuangan Diperbarui',
         `Memperbarui catatan keuangan: ${editForm.keterangan}`,
         NotificationType.INFO
       );
-​
+
       setEditLog(null);
     } catch (err) {
       alert('Gagal memperbarui log');
@@ -68,7 +68,7 @@ const AngsuranLogPage: React.FC = () => {
       setSavingEdit(false);
     }
   };
-​
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -88,7 +88,7 @@ const AngsuranLogPage: React.FC = () => {
         `Berhasil mencatat ${type.toLowerCase()} sebesar ${formatRupiah(amount)}: ${data.keterangan}`,
         data.masuk > 0 ? NotificationType.SUCCESS : NotificationType.WARNING
       );
-​
+
       setShowAdd(false);
       setForm({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
       setLocalMasuk('0');
@@ -97,7 +97,7 @@ const AngsuranLogPage: React.FC = () => {
       alert('Gagal menambah log');
     }
   };
-​
+
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus log ini?')) {
       const logToDelete = logs.find(l => l.id === id);
@@ -112,7 +112,7 @@ const AngsuranLogPage: React.FC = () => {
       }
     }
   };
-​
+
   const handleDeleteAll = async () => {
     try {
       const batch = writeBatch(db);
@@ -134,7 +134,7 @@ const AngsuranLogPage: React.FC = () => {
       alert(`Gagal menghapus data: ${err.message}`);
     }
   };
-​
+
   const handleExport = () => {
     // Reverse logs so oldest is at the top of the exported Excel
     const exportData = [...logs].reverse().map(l => ({
@@ -143,7 +143,7 @@ const AngsuranLogPage: React.FC = () => {
       'Pemasukan': l.masuk,
       'Pengeluaran': l.keluar
     }));
-​
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     
     // Auto-fit columns
@@ -153,16 +153,16 @@ const AngsuranLogPage: React.FC = () => {
       { wch: 20 }, // Pemasukan
       { wch: 20 }, // Pengeluaran
     ];
-​
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Log Angsuran');
     XLSX.writeFile(wb, `Log_Angsuran_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
-​
+
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-​
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -182,19 +182,19 @@ const AngsuranLogPage: React.FC = () => {
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length < 2) continue;
-​
+
           // Helper to check if a cell looks like a "Date" header
           const isHeader = (cell: any) => {
             if (!cell) return false;
             const s = String(cell).toUpperCase();
             return s.includes('TGL') || s.includes('TANGGAL') || s.includes('NO');
           };
-​
+
           const isTitle = (cell: any) => {
             if (!cell) return false;
             return String(cell).includes('Keterangan Keuangan') || String(cell).includes('Multi Kredit');
           };
-​
+
           // Parse Group 1 (B, C, D, E)
           if (row[1] && !isHeader(row[1]) && !isTitle(row[1])) {
             const tanggal = parseExcelDate(row[1]);
@@ -205,7 +205,7 @@ const AngsuranLogPage: React.FC = () => {
             // Validate it's actually a data row (has either income/expense OR a valid date string with /)
             const hasAmount = masuk > 0 || keluar > 0;
             const hasDesc = String(keterangan).trim().length > 0;
-​
+
             if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
@@ -217,17 +217,17 @@ const AngsuranLogPage: React.FC = () => {
               count++;
             }
           }
-​
+
           // Parse Group 2 (H, I, J, K)
           if (row[7] && !isHeader(row[7]) && !isTitle(row[7])) {
             const tanggal = parseExcelDate(row[7]);
             const keterangan = row[8] || '';
             const masuk = parseExcelValue(row[9]);
             const keluar = parseExcelValue(row[10]);
-​
+
             const hasAmount = masuk > 0 || keluar > 0;
             const hasDesc = String(keterangan).trim().length > 0;
-​
+
             if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
@@ -251,9 +251,9 @@ const AngsuranLogPage: React.FC = () => {
     };
     reader.readAsBinaryString(file);
   };
-​
+
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat histori log...</div>;
-​
+
   return (
     <div className="space-y-8 pb-20">
       <AdminConfirmModal 
@@ -263,7 +263,7 @@ const AngsuranLogPage: React.FC = () => {
         title="Hapus Seluruh Histori Log"
         message="Hati-hati! Tindakan ini akan menghapus SELURUH histori catatan keuangan angsuran secara permanen dari server."
       />
-​
+
       {editLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => !savingEdit && setEditLog(null)}>
           <motion.div
@@ -341,7 +341,7 @@ const AngsuranLogPage: React.FC = () => {
           </motion.div>
         </div>
       )}
-​
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
@@ -374,7 +374,7 @@ const AngsuranLogPage: React.FC = () => {
           </button>
         </div>
       </header>
-​
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-lg shadow-green-500/10">
           <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
@@ -395,7 +395,7 @@ const AngsuranLogPage: React.FC = () => {
           <h3 className="text-sm md:text-2xl lg:text-3xl font-black mt-1 leading-none">{formatRupiah(totals.saldo)}</h3>
         </div>
       </div>
-​
+
       {showAdd && (
         <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-[40px] border-2 border-accent/10">
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -441,7 +441,7 @@ const AngsuranLogPage: React.FC = () => {
           </form>
         </motion.section>
       )}
-​
+
       <div className="glass rounded-[40px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[700px]">
@@ -504,6 +504,5 @@ const AngsuranLogPage: React.FC = () => {
     </div>
   );
 };
-​
+
 export default AngsuranLogPage;
-​
