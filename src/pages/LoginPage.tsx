@@ -97,13 +97,13 @@ const LoginPage: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/operation-not-allowed') {
-        setError('Metode login ini saat ini tidak diizinkan. Silahkan hubungi administrator.');
+        setError('Metode login ini saat ini tidak diizinkan. Silakan hubungi administrator.');
       } else if (err.code === 'auth/user-not-found' || err.message?.includes('user-not-found')) {
         setError('Akun tidak ditemukan. Periksa kembali email yang Anda masukkan.');
       } else if (err.code === 'auth/wrong-password' || err.message?.includes('wrong-password')) {
         setError('Password salah. Periksa kembali email dan password Anda.');
       } else {
-        setError('Gagal masuk. Silahkan coba lagi atau hubungi IT support.');
+        setError('Gagal masuk. Silakan coba lagi atau hubungi IT support.');
       }
     } finally {
       setLoading(false);
@@ -147,8 +147,8 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-[#0A1628] via-primary to-[#0A1628] animate-gradient bg-[length:400%_400%]">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={ { opacity: 0, y: 20 } }
+        animate={ { opacity: 1, y: 0 } }
         className="glass w-full max-w-[420px] p-8 rounded-[40px] shadow-glass flex flex-col items-center"
       >
         <div className="mb-6 relative">

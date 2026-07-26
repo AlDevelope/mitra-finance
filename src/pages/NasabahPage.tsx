@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNasabah } from '../hooks/useNasabah';
 import { formatRupiah } from '../lib/formulas';
-import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { Search, Plus, Grid, List as ListIcon, MessageCircle, Share2, Eye, Download, FileSpreadsheet, Trash2, ArrowUpDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import { NasabahStatus, NotificationType } from '../types';
 import { Link } from 'react-router-dom';
@@ -19,6 +19,7 @@ const NasabahPage: React.FC = () => {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('SEMUA');
+  const [sortBy, setSortBy] = useState<string>('nama_asc');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
 
@@ -29,8 +30,20 @@ const NasabahPage: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const sortedList = [...filteredList].sort((a, b) => {
+    switch (sortBy) {
+      case 'nama_desc': return b.nama.localeCompare(a.nama);
+      case 'sisa_desc': return (b.sisa_hutang || 0) - (a.sisa_hutang || 0);
+      case 'sisa_asc': return (a.sisa_hutang || 0) - (b.sisa_hutang || 0);
+      case 'progress_desc': return (b.progress_persen || 0) - (a.progress_persen || 0);
+      case 'mgu_asc': return (a.sisa_angsuran || 0) - (b.sisa_angsuran || 0);
+      case 'nama_asc':
+      default: return a.nama.localeCompare(b.nama);
+    }
+  });
+
   const handleExport = () => {
-    const exportData = filteredList.map(n => ({
+    const exportData = sortedList.map(n => ({
       'Nama': n.nama,
       'Barang': n.barang,
       'Uang Muka': n.uang_muka,
@@ -45,7 +58,7 @@ const NasabahPage: React.FC = () => {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
-    
+
     // Auto-fit columns for neatness
     ws['!cols'] = [
       { wch: 25 }, // Nama
@@ -63,7 +76,7 @@ const NasabahPage: React.FC = () => {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Nasabah');
-    XLSX.writeFile(wb, `Data_Nasabah_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, 'Data_Nasabah_' + new Date().toISOString().split('T')[0] + '.xlsx');
   };
 
   const handleDeleteAll = async () => {
@@ -71,21 +84,21 @@ const NasabahPage: React.FC = () => {
     try {
       const batch = writeBatch(db);
       const snap = await getDocs(collection(db, 'nasabah'));
-      snap.docs.forEach(doc => {
-        batch.delete(doc.ref);
+      snap.docs.forEach(d => {
+        batch.delete(d.ref);
       });
       await batch.commit();
-      
+
       await logNotification(
         'Database Nasabah Dibersihkan',
         'Seluruh data nasabah telah dihapus dari sistem.',
         NotificationType.ERROR
       );
-      
+
       setShowDeleteAllModal(false);
       alert('Seluruh data nasabah berhasil dihapus.');
     } catch (err: any) {
-      alert(`Gagal menghapus data: ${err.message}`);
+      alert('Gagal menghapus data: ' + err.message);
     } finally {
       setIsDeletingAll(false);
     }
@@ -95,7 +108,7 @@ const NasabahPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <AdminConfirmModal 
+      <AdminConfirmModal
         isOpen={showDeleteAllModal}
         onClose={() => setShowDeleteAllModal(false)}
         onConfirm={handleDeleteAll}
@@ -110,7 +123,7 @@ const NasabahPage: React.FC = () => {
         <div className="grid grid-cols-2 lg:flex lg:items-center gap-2 md:gap-3 w-full lg:w-auto">
            {isAdmin && (
              <>
-               <button 
+               <button
                  onClick={() => setShowDeleteAllModal(true)}
                  className="bg-red-50 text-red-500 px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
                >
@@ -125,7 +138,7 @@ const NasabahPage: React.FC = () => {
                  <FileSpreadsheet className="w-4 h-4" />
                  Import
                </Link>
-               <button 
+               <button
                  onClick={handleExport}
                  className="bg-accent text-white px-3 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 hover:bg-accent-light transition-all shadow-lg shadow-accent/20 text-[10px] md:text-sm"
                >
@@ -140,15 +153,31 @@ const NasabahPage: React.FC = () => {
       <div className="glass p-3 md:p-4 rounded-2xl flex flex-col md:flex-row gap-3 md:gap-4 items-center">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5 group-focus-within:text-primary transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Cari nama nasabah atau barang..." 
+          <input
+            type="text"
+            placeholder="Cari nama nasabah atau barang..."
             className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all outline-none text-xs md:text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
+        <div className="relative w-full md:w-auto">
+          <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full md:w-auto pl-9 pr-8 py-2.5 md:py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all outline-none text-xs md:text-sm font-bold text-gray-600 appearance-none cursor-pointer"
+          >
+            <option value="nama_asc">Nama (A-Z)</option>
+            <option value="nama_desc">Nama (Z-A)</option>
+            <option value="sisa_desc">Sisa Cicilan Terbesar</option>
+            <option value="sisa_asc">Sisa Cicilan Terkecil</option>
+            <option value="progress_desc">Progress Tertinggi</option>
+            <option value="mgu_asc">Paling Dekat Lunas</option>
+          </select>
+        </div>
+
         <div className="flex w-full md:w-auto gap-2">
           <div className="flex flex-1 md:flex-none bg-gray-50 dark:bg-slate-800/50 p-1 md:p-1.5 rounded-xl border border-gray-100 dark:border-slate-700 overflow-x-auto hide-scrollbar">
             {['SEMUA', 'AKTIF', 'LUNAS', 'MENUNGGAK'].map((s) => (
@@ -166,13 +195,13 @@ const NasabahPage: React.FC = () => {
           </div>
 
           <div className="flex shrink-0 bg-gray-50 dark:bg-slate-800/50 p-1 md:p-1.5 rounded-xl border border-gray-100 dark:border-slate-700">
-            <button 
+            <button
               onClick={() => setView('grid')}
               className={cn("p-1.5 md:p-2 rounded-lg transition-all", view === 'grid' ? "bg-white dark:bg-slate-700 text-primary dark:text-sky-400 shadow-sm" : "text-gray-400 dark:text-slate-400")}
             >
               <Grid className="w-4 h-4 md:w-5 md:h-5" />
             </button>
-            <button 
+            <button
               onClick={() => setView('list')}
               className={cn("p-1.5 md:p-2 rounded-lg transition-all", view === 'list' ? "bg-white dark:bg-slate-700 text-primary dark:text-sky-400 shadow-sm" : "text-gray-400 dark:text-slate-400")}
             >
@@ -184,12 +213,12 @@ const NasabahPage: React.FC = () => {
 
       {view === 'grid' ? (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-          {filteredList.map((nasabah, i) => (
+          {sortedList.map((nasabah, i) => (
             <motion.div
               key={nasabah.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
+              initial={ { opacity: 0, y: 20 } }
+              animate={ { opacity: 1, y: 0 } }
+              transition={ { delay: i * 0.04 } }
               className="glass p-4 md:p-6 rounded-2xl md:rounded-3xl group hover:shadow-2xl transition-all duration-300"
             >
               <div className="flex justify-between items-start mb-3 md:mb-4">
@@ -205,7 +234,7 @@ const NasabahPage: React.FC = () => {
                   {nasabah.status}
                 </div>
               </div>
-              
+
               <h3 className="font-bold text-xs md:text-xl mb-0.5 md:mb-1 truncate">{nasabah.nama}</h3>
               <p className="text-gray-500 text-[9px] md:text-sm mb-3 md:mb-4 flex items-center gap-1.5 truncate">
                 <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-accent shrink-0" />
@@ -219,10 +248,10 @@ const NasabahPage: React.FC = () => {
                     <span className="text-primary">{nasabah.progress_persen}%</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       className="h-full bg-accent"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${nasabah.progress_persen}%` }}
+                      initial={ { width: 0 } }
+                      animate={ { width: nasabah.progress_persen + '%' } }
                     />
                   </div>
                 </div>
@@ -233,16 +262,16 @@ const NasabahPage: React.FC = () => {
                     <p className="font-bold text-[10px] md:text-base text-gray-700 leading-none">{nasabah.sisa_angsuran} <span className="text-[7px] md:text-[10px] text-gray-400">MGU</span></p>
                   </div>
                   <div className="md:text-right md:block flex justify-between items-center">
-                    <p className="text-[7px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Sisa Hutang</p>
+                    <p className="text-[7px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Sisa Cicilan</p>
                     <p className="font-bold text-[10px] md:text-base text-danger leading-none">{formatRupiah(nasabah.sisa_hutang)}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-1.5 md:gap-2">
-                  <Link to={`/nasabah/${nasabah.id}`} className="flex-1 bg-primary text-white py-1.5 md:py-2.5 rounded-lg md:rounded-xl font-bold text-[9px] md:text-sm flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all">
+                  <Link to={'/nasabah/' + nasabah.id} className="flex-1 bg-primary text-white py-1.5 md:py-2.5 rounded-lg md:rounded-xl font-bold text-[9px] md:text-sm flex items-center justify-center gap-1.5 hover:bg-primary-light transition-all">
                     <Eye className="w-3 h-3 md:w-4 md:h-4" /> Detail
                   </Link>
-                  <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="w-8 h-8 md:w-12 md:h-10 bg-green-500 text-white rounded-lg md:rounded-xl flex items-center justify-center hover:bg-green-600 transition-all shrink-0">
+                  <a href={'https://wa.me/' + nasabah.whatsapp_number} className="w-8 h-8 md:w-12 md:h-10 bg-green-500 text-white rounded-lg md:rounded-xl flex items-center justify-center hover:bg-green-600 transition-all shrink-0">
                     <MessageCircle className="w-3.5 h-3.5 md:w-5 md:h-5" />
                   </a>
                 </div>
@@ -259,13 +288,13 @@ const NasabahPage: React.FC = () => {
                   <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Nama / Barang</th>
                   <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-center">Status</th>
                   <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">MGU</th>
-                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Sisa Hutang</th>
+                  <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Sisa Cicilan</th>
                   <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">Progress</th>
                   <th className="px-4 lg:px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                {filteredList.map((nasabah) => (
+                {sortedList.map((nasabah) => (
                   <tr key={nasabah.id} className="hover:bg-gray-50/30 dark:hover:bg-white/5 transition-colors group">
                     <td className="px-4 lg:px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -299,16 +328,16 @@ const NasabahPage: React.FC = () => {
                             <span className="text-primary">{nasabah.progress_persen}%</span>
                          </div>
                          <div className="h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-accent" style={{ width: `${nasabah.progress_persen}%` }} />
+                            <div className="h-full bg-accent" style={ { width: nasabah.progress_persen + '%' } } />
                          </div>
                       </div>
                     </td>
                     <td className="px-4 lg:px-6 py-4 text-right">
                       <div className="flex justify-end gap-1.5 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Link to={`/nasabah/${nasabah.id}`} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all border border-primary/5">
+                         <Link to={'/nasabah/' + nasabah.id} className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all border border-primary/5">
                            <Eye className="w-4 h-4" />
                          </Link>
-                         <a href={`https://wa.me/${nasabah.whatsapp_number}`} className="p-2 bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400 rounded-lg hover:bg-green-200 transition-all border border-green-500/5">
+                         <a href={'https://wa.me/' + nasabah.whatsapp_number} className="p-2 bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400 rounded-lg hover:bg-green-200 transition-all border border-green-500/5">
                            <MessageCircle className="w-4 h-4" />
                          </a>
                       </div>
