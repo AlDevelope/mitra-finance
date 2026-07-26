@@ -14,19 +14,22 @@ import {
 import { db } from '../lib/firebase';
 import { Nasabah, Angsuran, NasabahStatus, NotificationType } from '../types';
 import { formatRupiah, generateWhatsAppMessage, formatDisplayDate } from '../lib/formulas';
-import { ArrowLeft, MessageCircle, Share2, Edit, Trash2, CheckCircle2, Plus, Calendar, Wallet, Clock, History, Camera, TrendingUp, X as XIcon } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Edit, Trash2, CheckCircle2, Plus, Calendar, Wallet, Clock, History, Camera, TrendingUp, X as XIcon, Printer } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { NasabahShareCard } from '../components/NasabahShareCard';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
-
+import { useSettings } from '../hooks/useSettings';
+​
 import { logNotification } from '../lib/notifications';
-
+import { printStrukBukti } from '../lib/printStruk';
+​
 const NasabahDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { settings } = useSettings();
   const [nasabah, setNasabah] = useState<Nasabah | null>(null);
   const [history, setHistory] = useState<Angsuran[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ const NasabahDetail: React.FC = () => {
   const [payNote, setPayNote] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
-
+​
   useEffect(() => {
     if (!id) return;
     
@@ -55,7 +58,7 @@ const NasabahDetail: React.FC = () => {
        console.error("Nasabah detail error:", err);
        setLoading(false);
     });
-
+​
     const historyUnsub = onSnapshot(
       query(collection(db, 'nasabah', id, 'history'), orderBy('angsuran_ke', 'desc')),
       (snap) => {
@@ -63,13 +66,13 @@ const NasabahDetail: React.FC = () => {
         setLoading(false);
       }
     );
-
+​
     return () => {
       nasabahUnsub();
       historyUnsub();
     };
   }, [id, navigate, loading]);
-
+​
   const createNotification = async (title: string, message: string, type: NotificationType) => {
     try {
       await addDoc(collection(db, 'notifications'), {
@@ -83,11 +86,11 @@ const NasabahDetail: React.FC = () => {
       console.error('Failed to create notification:', err);
     }
   };
-
+​
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nasabah || !id) return;
-
+​
     setPayLoading(true);
     try {
       const nextAngsuran = (nasabah.angsuran_terbayar || 0) + 1;
@@ -103,7 +106,7 @@ const NasabahDetail: React.FC = () => {
         keterangan: payNote || 'Pembayaran angsuran',
         created_at: serverTimestamp(),
       });
-
+​
       // 2. Update nasabah document
       if (sisa === 0) {
         setShowLunasModal(true);
@@ -131,7 +134,7 @@ const NasabahDetail: React.FC = () => {
       setPayLoading(false);
     }
   };
-
+​
   const handleFinalizeLunas = async () => {
     if (!nasabah || !id) return;
     setPayLoading(true);
@@ -157,14 +160,14 @@ const NasabahDetail: React.FC = () => {
           console.error("Delayed delete error:", delErr);
         }
       }, 500);
-
+​
     } catch (err: any) {
       console.error("Lunas final error:", err);
       alert(`Gagal menyelesaikan pelunasan: ${err.message}`);
       setPayLoading(false);
     }
   };
-
+​
   const confirmDelete = async () => {
     if (!id || !nasabah) return;
     try {
@@ -176,13 +179,13 @@ const NasabahDetail: React.FC = () => {
         `Data nasabah ${deletedName} telah dihapus dari sistem.`,
         NotificationType.ERROR
       );
-
+​
       navigate('/nasabah');
     } catch (err: any) {
       alert(`Gagal menghapus nasabah: ${err.message}`);
     }
   };
-
+​
   const handleDeleteHistory = async (record: Angsuran) => {
     if (!id || !nasabah || !window.confirm(`Hapus histori pembayaran MGU ke-${record.angsuran_ke}? Stats nasabah akan dikembalikan.`)) return;
     
@@ -190,7 +193,7 @@ const NasabahDetail: React.FC = () => {
     try {
       // 1. Delete record
       await deleteDoc(doc(db, 'nasabah', id, 'history', record.id));
-
+​
       // 2. Rollback nasabah stats
       const prevTerbayar = record.angsuran_ke - 1;
       const sisa = nasabah.jumlah_angsuran - prevTerbayar;
@@ -210,10 +213,10 @@ const NasabahDetail: React.FC = () => {
       setDeletingHistoryId(null);
     }
   };
-
+​
   if (loading) return <div className="p-8 text-center font-bold text-gray-400">Memuat detail nasabah...</div>;
   if (!nasabah) return <div className="p-8 text-center font-bold text-gray-400">Nasabah tidak ditemukan (mungkin sudah lunas/dihapus)</div>;
-
+​
   return (
     <div className="space-y-6 pb-20">
       <header className="flex items-center justify-between">
@@ -247,7 +250,7 @@ const NasabahDetail: React.FC = () => {
            )}
         </div>
       </header>
-
+​
       {nasabah && (
         <AdminConfirmModal
           isOpen={showDeleteModal}
@@ -257,7 +260,7 @@ const NasabahDetail: React.FC = () => {
           message={`Apakah Anda yakin ingin menghapus nasabah ${nasabah.nama}? Seluruh data riwayat pembayaran akan ikut terhapus selamanya.`}
         />
       )}
-
+​
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="glass p-8 rounded-[40px] relative overflow-hidden">
@@ -294,10 +297,16 @@ const NasabahDetail: React.FC = () => {
                      >
                        <Share2 className="w-5 h-5 md:w-6 md:h-6" /> Bagikan Status
                      </button>
+                     <button 
+                      onClick={() => printStrukBukti({ nasabah, history, settings, isLunas: nasabah.status === NasabahStatus.LUNAS || nasabah.sisa_angsuran === 0 })}
+                      className="bg-[#0A1628] text-white px-6 md:px-8 py-3.5 md:py-5 rounded-xl md:rounded-[24px] font-black text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3 shadow-xl shadow-slate-900/20 hover:scale-[1.02] transition-all"
+                     >
+                       <Printer className="w-5 h-5 md:w-6 md:h-6" /> Cetak Struk
+                     </button>
                   </div>
               </div>
             </div>
-
+​
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10 pt-8 border-t border-gray-100">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Uang Muka</p>
@@ -321,7 +330,7 @@ const NasabahDetail: React.FC = () => {
               </div>
             </div>
           </section>
-
+​
           <section className="glass p-8 rounded-[40px]">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold flex items-center gap-2">
@@ -340,7 +349,7 @@ const NasabahDetail: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20 animate-shimmer" />
               </motion.div>
             </div>
-
+​
             <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
               {Array.from({ length: nasabah.jumlah_angsuran }).map((_, idx) => {
                 const step = idx + 1;
@@ -359,7 +368,7 @@ const NasabahDetail: React.FC = () => {
               })}
             </div>
           </section>
-
+​
           <section className="glass rounded-[40px] overflow-hidden">
             <div className="p-8 pb-0 flex justify-between items-center">
                <h3 className="text-xl font-bold flex items-center gap-2">
@@ -414,7 +423,7 @@ const NasabahDetail: React.FC = () => {
           </div>
         </section>
       </div>
-
+​
         <div className="space-y-6">
           <section className="glass p-8 rounded-[40px] bg-primary text-white shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
@@ -436,7 +445,7 @@ const NasabahDetail: React.FC = () => {
               </div>
             </div>
           </section>
-
+​
           {isAdmin && nasabah.status !== NasabahStatus.LUNAS && (
             <section className="glass p-8 rounded-[40px] border-2 border-accent/20">
               <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-primary">
@@ -459,7 +468,7 @@ const NasabahDetail: React.FC = () => {
                     />
                   </div>
                 </div>
-
+​
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Jumlah Bayar</label>
                   <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
@@ -467,7 +476,7 @@ const NasabahDetail: React.FC = () => {
                     <p className="text-xl font-bold text-primary">{formatRupiah(nasabah.rp_per_angsuran)}</p>
                   </div>
                 </div>
-
+​
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Catatan Tambahan</label>
                   <textarea 
@@ -477,7 +486,7 @@ const NasabahDetail: React.FC = () => {
                     onChange={(e) => setPayNote(e.target.value)}
                   />
                 </div>
-
+​
                 <button 
                   type="submit" 
                   disabled={payLoading}
@@ -488,7 +497,7 @@ const NasabahDetail: React.FC = () => {
               </form>
             </section>
           )}
-
+​
           <section className="glass p-8 rounded-[40px]">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Catatan Nasabah</h3>
             <div className="p-4 bg-gray-50 rounded-2xl text-sm font-medium text-gray-600 italic">
@@ -497,7 +506,7 @@ const NasabahDetail: React.FC = () => {
           </section>
         </div>
       </div>
-
+​
       {showLunasModal && nasabah && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
            <motion.div 
@@ -540,7 +549,7 @@ const NasabahDetail: React.FC = () => {
            </motion.div>
         </div>
       )}
-
+​
       {showShareCard && nasabah && (
         <NasabahShareCard 
           nasabah={nasabah} 
@@ -554,5 +563,6 @@ const NasabahDetail: React.FC = () => {
     </div>
   );
 };
-
+​
 export default NasabahDetail;
+​
