@@ -5,21 +5,21 @@ import { Nasabah, Angsuran } from '../types';
 import { Building2, CheckCircle2, Share2, MessageCircle, X as XIcon } from 'lucide-react';
 import { useSettings } from '../hooks/useSettings';
 import { generateWhatsAppMessage } from '../lib/formulas';
-​
+
 interface NasabahShareCardProps {
   nasabah: Nasabah;
   history?: Angsuran[];
   onClose: () => void;
   isLunas?: boolean;
 }
-​
+
 export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, history = [], onClose, isLunas = false }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   
   // Theme state: default to dark if document has 'dark' class, but let's make it smarter
   const [isDarkMode, setIsDarkMode] = React.useState(false);
-​
+
   React.useEffect(() => {
     const checkTheme = () => {
       const isDark = document.documentElement.classList.contains('dark') || 
@@ -28,9 +28,9 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
     };
     checkTheme();
   }, []);
-​
+
   const [isProcessing, setIsProcessing] = React.useState(false);
-​
+
   const shareToWA = async () => {
     if (cardRef.current === null) return;
     setIsProcessing(true);
@@ -42,11 +42,11 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `Status-${nasabah.nama}.png`, { type: 'image/png' });
-​
+
       const text = isLunas 
         ? `Selamat ${nasabah.nama}! Angsuran ${nasabah.barang} Anda di Mitra Finance 99 telah LUNAS TOTAL. Berikut sertifikat pelunasannya.`
         : `Halo ${nasabah.nama}, berikut adalah update status angsuran Anda di Mitra Finance 99.\n\nBarang: ${nasabah.barang}\nCicilan Ke: ${angsuranTerbayar}\nSisa Cicilan: ${sisaMinggu} Minggu\nCicilan Per Minggu: ${formatRupiah(nasabah.rp_per_angsuran)}\nSisa Cicilan: ${formatRupiah(nasabah.sisa_hutang)}\n\nTerima kasih atas kepercayaannya!`;
-​
+
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
@@ -73,7 +73,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
       setIsProcessing(false);
     }
   };
-​
+
   const downloadImage = async () => {
     if (cardRef.current === null) return;
     
@@ -87,16 +87,16 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
       console.error('Failed to generate image', err);
     }
   };
-​
+
   const lunasPercentage = nasabah.progress_persen || 0;
   const sisaMinggu = nasabah.sisa_angsuran || 0;
   const angsuranTerbayar = nasabah.angsuran_terbayar || 0;
   const totalAngsuran = nasabah.jumlah_angsuran || 0;
-​
+
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (lunasPercentage / 100) * circumference;
-​
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -114,7 +114,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
             <XIcon className="w-6 h-6" />
           </button>
         </div>
-​
+
         {/* Scrollable Container for Preview */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-200/50">
           {/* The Card to Capture */}
@@ -127,7 +127,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                {/* Gold Accents */}
                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-[80px]" />
                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-accent/20 rounded-full blur-[80px]" />
-​
+
                {/* Certificate Header */}
                <div className="text-center mb-10 relative z-10">
                   <div className="flex justify-center mb-6">
@@ -139,7 +139,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                   <h2 className="text-4xl font-black text-gray-900 tracking-tight leading-tight uppercase">Sertifikat Pelunasan</h2>
                   <div className="w-32 h-1 bg-accent mx-auto mt-4 rounded-full" />
                </div>
-​
+
                <div className="text-center mb-10 relative z-10 space-y-4">
                   <p className="text-sm font-medium text-gray-500 italic">Diberikan dengan bangga kepada:</p>
                   <h3 className="text-5xl font-black text-primary tracking-tighter">{nasabah.nama}</h3>
@@ -148,7 +148,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     <p className="text-xl font-bold text-gray-800">{nasabah.barang}</p>
                   </div>
                </div>
-​
+
                <div className="bg-gray-50 p-8 rounded-[40px] mb-10 relative z-10 border border-gray-100 text-center">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Status Akhir</p>
                   <div className="inline-flex items-center gap-4 bg-green-500 text-white px-8 py-4 rounded-full shadow-lg shadow-green-500/20">
@@ -165,7 +165,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                      </div>
                   </div>
                </div>
-​
+
                {/* Stamp/Footer */}
                <div className="flex justify-between items-center relative z-10 px-4">
                   <div className="text-left">
@@ -210,7 +210,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                 {nasabah.status}
               </div>
             </div>
-​
+
              {/* Main Info Box */}
             <div className={`${isDarkMode ? 'bg-[#15233D]' : 'bg-gray-50'} rounded-[40px] p-8 relative z-10 border ${isDarkMode ? 'border-white/5' : 'border-gray-100'} shadow-xl mb-6`}>
                <div className="mb-6">
@@ -220,7 +220,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                   </div>
                   <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-[0.2em] mt-3`}>{nasabah.barang}</p>
                </div>
-​
+
                {history.length > 0 && (
                  <div className={`mb-6 p-4 rounded-2xl ${isDarkMode ? 'bg-[#0A1628]/80' : 'bg-white'} border ${isDarkMode ? 'border-white/10' : 'border-gray-100'} flex items-center justify-between`}>
                     <div className="flex flex-col">
@@ -233,7 +233,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     </div>
                  </div>
                )}
-​
+
                <div className="flex items-center gap-8 mb-8">
                   {/* Gauge */}
                   <div className="relative w-32 h-32 shrink-0">
@@ -283,7 +283,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} tracking-tighter leading-none`}>{formatRupiah(nasabah.rp_per_angsuran)}</p>
                   </div>
                </div>
-​
+
                <div className={`${isDarkMode ? 'bg-[#0A1628]/30' : 'bg-white'} px-6 py-4 rounded-2xl border ${isDarkMode ? 'border-white/5' : 'border-gray-100'} flex justify-between`}>
                   <div className="text-center">
                     <p className={`text-[9px] font-black ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} uppercase tracking-widest`}>Tenor</p>
@@ -296,7 +296,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                   </div>
                </div>
             </div>
-​
+
             {/* Timeline */}
             <div className="mb-0 relative z-10 flex-1">
               <div className="flex items-center gap-2 mb-6">
@@ -311,7 +311,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                     
                     const payment = history.find(h => h.angsuran_ke === stepNum);
                     const payDate = payment ? payment.tanggal_bayar : null;
-​
+
                     return (
                       <div key={i} className="flex flex-col items-center gap-2">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -334,7 +334,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
                  })}
               </div>
             </div>
-​
+
             {/* Footer Copy */}
             <div className={`mt-12 text-center border-t ${isDarkMode ? 'border-white/5' : 'border-gray-100'} pt-8 relative z-10`}>
               <p className={`text-[10px] ${isDarkMode ? 'text-white' : 'text-primary'} font-black tracking-widest uppercase`}>Mitra Finance 99</p>
@@ -343,7 +343,7 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
           </div>
         )}
         </div>
-​
+
         {/* Action Buttons */}
         <div className="p-8 bg-white dark:bg-slate-900 border-t dark:border-white/5 shrink-0 flex flex-col gap-3">
           <button 
@@ -366,4 +366,3 @@ export const NasabahShareCard: React.FC<NasabahShareCardProps> = ({ nasabah, his
     </div>
   );
 };
-​
