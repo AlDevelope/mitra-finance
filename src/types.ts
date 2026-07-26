@@ -58,6 +58,7 @@ export interface KosanRecord {
   masuk: number;
   jumlah: number; // accumulated
   keterangan?: string;
+  kost?: 'D1' | 'D2'; // 'D1' = lama, 'D2' = baru; kosong dianggap D1 (aditif, tanpa migrasi)
   created_at: any;
 }
 
@@ -98,6 +99,7 @@ export interface Keuangan {
 export interface Settings {
   logo_url?: string;
   kosan_modal?: number;
+  kosan_modal_baru?: number; // modal renov Den Kost D2 (baru); default 0 bila belum diisi
   simulasi_harga?: number;
   simulasi_dp?: number;
   category_labels: {

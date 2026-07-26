@@ -6,19 +6,20 @@ import {
   deleteDoc, 
   doc, 
   getDocs, 
-  writeBatch 
+  writeBatch, 
+  updateDoc 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { NotificationType } from '../types';
+import { NotificationType, AngsuranLog } from '../types';
 import { formatRupiah, formatDisplayDate, parseExcelValue, parseExcelDate } from '../lib/formulas';
-import { Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Banknote, Download, Upload, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ArrowUpCircle, ArrowDownCircle, Banknote, Download, Upload, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { logNotification } from '../lib/notifications';
 import { useAuth } from '../context/AuthContext';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { useAngsuran } from '../hooks/useAngsuran';
-
+​
 const AngsuranLogPage: React.FC = () => {
   const { isAdmin } = useAuth();
   const { logs, totals, loading } = useAngsuran();
@@ -27,7 +28,47 @@ const AngsuranLogPage: React.FC = () => {
   const [localMasuk, setLocalMasuk] = useState('0');
   const [localKeluar, setLocalKeluar] = useState('0');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-
+​
+  // Edit state (edit in-place untuk log yang sudah tersimpan)
+  const [editLog, setEditLog] = useState<AngsuranLog | null>(null);
+  const [editForm, setEditForm] = useState({ tanggal: '', keterangan: '', masuk: 0, keluar: 0 });
+  const [editMasukStr, setEditMasukStr] = useState('0');
+  const [editKeluarStr, setEditKeluarStr] = useState('0');
+  const [savingEdit, setSavingEdit] = useState(false);
+​
+  const openEdit = (l: AngsuranLog) => {
+    setEditLog(l);
+    setEditForm({ tanggal: l.tanggal, keterangan: l.keterangan, masuk: l.masuk || 0, keluar: l.keluar || 0 });
+    setEditMasukStr((l.masuk || 0) > 0 ? formatRupiah(l.masuk) : '0');
+    setEditKeluarStr((l.keluar || 0) > 0 ? formatRupiah(l.keluar) : '0');
+  };
+​
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editLog) return;
+    setSavingEdit(true);
+    try {
+      await updateDoc(doc(db, 'angsuran_logs', editLog.id), {
+        tanggal: editForm.tanggal,
+        keterangan: editForm.keterangan,
+        masuk: Number(editForm.masuk),
+        keluar: Number(editForm.keluar)
+      });
+​
+      await logNotification(
+        'Log Keuangan Diperbarui',
+        `Memperbarui catatan keuangan: ${editForm.keterangan}`,
+        NotificationType.INFO
+      );
+​
+      setEditLog(null);
+    } catch (err) {
+      alert('Gagal memperbarui log');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+​
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -47,7 +88,7 @@ const AngsuranLogPage: React.FC = () => {
         `Berhasil mencatat ${type.toLowerCase()} sebesar ${formatRupiah(amount)}: ${data.keterangan}`,
         data.masuk > 0 ? NotificationType.SUCCESS : NotificationType.WARNING
       );
-
+​
       setShowAdd(false);
       setForm({ tanggal: new Date().toISOString().split('T')[0], keterangan: '', masuk: 0, keluar: 0 });
       setLocalMasuk('0');
@@ -56,7 +97,7 @@ const AngsuranLogPage: React.FC = () => {
       alert('Gagal menambah log');
     }
   };
-
+​
   const handleDelete = async (id: string) => {
     if (window.confirm('Hapus log ini?')) {
       const logToDelete = logs.find(l => l.id === id);
@@ -71,7 +112,7 @@ const AngsuranLogPage: React.FC = () => {
       }
     }
   };
-
+​
   const handleDeleteAll = async () => {
     try {
       const batch = writeBatch(db);
@@ -93,7 +134,7 @@ const AngsuranLogPage: React.FC = () => {
       alert(`Gagal menghapus data: ${err.message}`);
     }
   };
-
+​
   const handleExport = () => {
     // Reverse logs so oldest is at the top of the exported Excel
     const exportData = [...logs].reverse().map(l => ({
@@ -102,7 +143,7 @@ const AngsuranLogPage: React.FC = () => {
       'Pemasukan': l.masuk,
       'Pengeluaran': l.keluar
     }));
-
+​
     const ws = XLSX.utils.json_to_sheet(exportData);
     
     // Auto-fit columns
@@ -112,16 +153,16 @@ const AngsuranLogPage: React.FC = () => {
       { wch: 20 }, // Pemasukan
       { wch: 20 }, // Pengeluaran
     ];
-
+​
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Log Angsuran');
     XLSX.writeFile(wb, `Log_Angsuran_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
-
+​
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+​
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -141,19 +182,19 @@ const AngsuranLogPage: React.FC = () => {
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length < 2) continue;
-
+​
           // Helper to check if a cell looks like a "Date" header
           const isHeader = (cell: any) => {
             if (!cell) return false;
             const s = String(cell).toUpperCase();
             return s.includes('TGL') || s.includes('TANGGAL') || s.includes('NO');
           };
-
+​
           const isTitle = (cell: any) => {
             if (!cell) return false;
             return String(cell).includes('Keterangan Keuangan') || String(cell).includes('Multi Kredit');
           };
-
+​
           // Parse Group 1 (B, C, D, E)
           if (row[1] && !isHeader(row[1]) && !isTitle(row[1])) {
             const tanggal = parseExcelDate(row[1]);
@@ -164,7 +205,7 @@ const AngsuranLogPage: React.FC = () => {
             // Validate it's actually a data row (has either income/expense OR a valid date string with /)
             const hasAmount = masuk > 0 || keluar > 0;
             const hasDesc = String(keterangan).trim().length > 0;
-
+​
             if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
@@ -176,17 +217,17 @@ const AngsuranLogPage: React.FC = () => {
               count++;
             }
           }
-
+​
           // Parse Group 2 (H, I, J, K)
           if (row[7] && !isHeader(row[7]) && !isTitle(row[7])) {
             const tanggal = parseExcelDate(row[7]);
             const keterangan = row[8] || '';
             const masuk = parseExcelValue(row[9]);
             const keluar = parseExcelValue(row[10]);
-
+​
             const hasAmount = masuk > 0 || keluar > 0;
             const hasDesc = String(keterangan).trim().length > 0;
-
+​
             if (hasDesc && hasAmount) {
               await addDoc(collection(db, 'angsuran_logs'), {
                 tanggal,
@@ -210,9 +251,9 @@ const AngsuranLogPage: React.FC = () => {
     };
     reader.readAsBinaryString(file);
   };
-
+​
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat histori log...</div>;
-
+​
   return (
     <div className="space-y-8 pb-20">
       <AdminConfirmModal 
@@ -222,6 +263,85 @@ const AngsuranLogPage: React.FC = () => {
         title="Hapus Seluruh Histori Log"
         message="Hati-hati! Tindakan ini akan menghapus SELURUH histori catatan keuangan angsuran secara permanen dari server."
       />
+​
+      {editLog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => !savingEdit && setEditLog(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-8 pt-8 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Edit Catatan Log</h3>
+                  <p className="text-[11px] font-medium text-gray-400">Ubah tanggal, keterangan, atau nominal</p>
+                </div>
+              </div>
+              <button onClick={() => setEditLog(null)} disabled={savingEdit} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdate} className="px-8 pb-8 space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Tanggal</label>
+                <input type="date" required value={editForm.tanggal} onChange={e => setEditForm({...editForm, tanggal: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800 rounded-2xl outline-none font-medium" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keterangan / Nama</label>
+                <input type="text" required value={editForm.keterangan} onChange={e => setEditForm({...editForm, keterangan: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800 rounded-2xl outline-none font-medium" placeholder="Cicilan ke-X Nama..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Masuk</label>
+                  <input
+                    type="text"
+                    value={editMasukStr}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      const num = parseInt(raw) || 0;
+                      setEditMasukStr(formatRupiah(num));
+                      setEditForm({...editForm, masuk: num});
+                    }}
+                    className="w-full px-3 py-3.5 bg-gray-50 dark:bg-slate-800 rounded-2xl outline-none font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keluar</label>
+                  <input
+                    type="text"
+                    value={editKeluarStr}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/[^0-9]/g, '');
+                      const num = parseInt(raw) || 0;
+                      setEditKeluarStr(formatRupiah(num));
+                      setEditForm({...editForm, keluar: num});
+                    }}
+                    className="w-full px-3 py-3.5 bg-gray-50 dark:bg-slate-800 rounded-2xl outline-none font-medium"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 font-medium flex items-start gap-1.5">
+                <span className="text-accent">*</span>
+                <span>Kolom "Total" (saldo berjalan) otomatis dihitung ulang setelah disimpan.</span>
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setEditLog(null)} disabled={savingEdit} className="flex-1 py-4 rounded-2xl font-bold text-sm bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-all">
+                  Batal
+                </button>
+                <button type="submit" disabled={savingEdit} className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:hover:scale-100">
+                  <Check className="w-4 h-4" /> {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+​
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight text-primary">Keterangan Angsuran</h2>
@@ -254,7 +374,7 @@ const AngsuranLogPage: React.FC = () => {
           </button>
         </div>
       </header>
-
+​
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
         <div className="glass p-4 md:p-8 rounded-2xl md:rounded-[40px] bg-green-500 text-white relative overflow-hidden shadow-lg shadow-green-500/10">
           <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white/10 rounded-full -mr-4 -mt-4 md:-mr-8 md:-mt-8" />
@@ -275,7 +395,7 @@ const AngsuranLogPage: React.FC = () => {
           <h3 className="text-sm md:text-2xl lg:text-3xl font-black mt-1 leading-none">{formatRupiah(totals.saldo)}</h3>
         </div>
       </div>
-
+​
       {showAdd && (
         <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-[40px] border-2 border-accent/10">
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -321,7 +441,7 @@ const AngsuranLogPage: React.FC = () => {
           </form>
         </motion.section>
       )}
-
+​
       <div className="glass rounded-[40px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[700px]">
@@ -356,9 +476,14 @@ const AngsuranLogPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-5 text-right">
-                    <button onClick={() => handleDelete(l.id)} className="p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-xl transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => openEdit(l)} className="p-2 text-gray-300 hover:text-accent hover:bg-accent/5 rounded-xl transition-all" title="Edit catatan">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(l.id)} className="p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-xl transition-all" title="Hapus catatan">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -379,5 +504,6 @@ const AngsuranLogPage: React.FC = () => {
     </div>
   );
 };
-
+​
 export default AngsuranLogPage;
+​

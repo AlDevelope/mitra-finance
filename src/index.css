@@ -1,67 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  
-  --color-primary: #1B4F72;
-  --color-primary-light: #2E86C1;
-  --color-accent: #F39C12;
-  --color-success: #27AE60;
-  --color-danger: #E74C3C;
-  --color-warning: #F39C12;
-  --color-bg-dark: #0A1628;
-  
-  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+
+  /* Brand — biru profesional, bersih (gaya loan management / fintech) */
+  --color-primary: #1D4ED8;        /* blue-700  — deep, trustworthy */
+  --color-primary-light: #3B82F6;  /* blue-500 */
+  --color-accent: #2563EB;         /* blue-600  — tombol utama (CTA) */
+
+  /* Warna fungsional */
+  --color-success: #059669;        /* emerald-600 */
+  --color-danger: #DC2626;         /* red-600 */
+  --color-warning: #F59E0B;        /* amber-500 */
+
+  --color-bg-dark: #0F172A;        /* slate-900 */
+
+  --shadow-glass: 0 4px 24px -8px rgba(15, 23, 42, 0.12);
 }
 
 @layer base {
   body {
-    @apply font-sans;
-    color: var(--color-slate-800, #1e293b);
-    background-color: var(--color-slate-50, #f8fafc);
+    @apply font-sans antialiased;
+    color: #0f172a;                /* slate-900 */
+    background-color: #f1f5f9;     /* slate-100 — kanvas lembut & bersih */
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
   .glass {
-    background-color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid #e2e8f0;                 /* slate-200 — border tipis rapi */
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06),
+                0 8px 24px -12px rgba(15, 23, 42, 0.10);
   }
 
   .dark .glass {
-    background-color: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
   }
-  
+
   .glass-dark {
-    background-color: rgba(10, 22, 40, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-primary: #3498DB;
+    --color-primary: #3B82F6;      /* blue-500 — lebih terang di dark mode */
     --color-bg-dark: #0F172A;
   }
-  
+
   @layer base {
     body {
-      color: var(--color-slate-100, #f1f5f9);
-      background-color: #0F172A;
+      color: #f1f5f9;              /* slate-100 */
+      background-color: #0F172A;   /* slate-900 */
     }
   }
 
   @layer components {
     .glass {
-      background-color: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
   }
 
