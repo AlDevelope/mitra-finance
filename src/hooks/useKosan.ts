@@ -49,10 +49,9 @@ export function useKosan(kost?: 'D1' | 'D2') {
 
   const totals = useMemo(() => {
     const modalD1 = settings?.kosan_modal || 15000000;
-    // D2 mengambil modal_renov dari settings.kosan_modal_baru (Uang Renovasi Baru di Keuangan)
     const modalD2 = settings?.kosan_modal_baru !== undefined 
       ? settings.kosan_modal_baru 
-      : (settings?.kosan_modal || 15000000);
+      : 0;
 
     if (kost) {
       const terkumpul = records.reduce((acc, curr) => acc + (curr.masuk || 0), 0);
