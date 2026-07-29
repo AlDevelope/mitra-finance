@@ -47,7 +47,6 @@ const KeuanganPage: React.FC = () => {
 
   useEffect(() => {
     if (keuangan) {
-      // Mengambil nilai modal renov D2 dari settings jika ada
       const currentUangRenov = settings?.kosan_modal_baru !== undefined 
         ? settings.kosan_modal_baru 
         : Number(keuangan.uang_renov || 0);
@@ -87,7 +86,7 @@ const KeuanganPage: React.FC = () => {
       alert('Data keuangan berhasil direset.');
     } catch (err) {
       alert('Gagal mereset data.');
-    } finally {
+    } fontally {
       setSaving(false);
     }
   };
@@ -99,14 +98,12 @@ const KeuanganPage: React.FC = () => {
     try {
       const numRenov = Number(updatedForm.uang_renov || 0);
 
-      // Save ke summary keuangan
       await updateDoc(doc(db, 'keuangan', 'summary'), {
         ...updatedForm,
         uang_renov: numRenov,
         updated_at: serverTimestamp()
       });
 
-      // SINKRONISASI: Update kosan_modal_baru di settings agar Den Kost D2 langsung ter-update
       if (settings) {
         await updateSettings({
           ...settings,
