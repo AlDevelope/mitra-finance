@@ -64,7 +64,6 @@ const KosankuPage: React.FC = () => {
     const ok = await updateSettings({ ...settings, ...modalPatch });
 
     if (ok) {
-      // SINKRONISASI: Jika D2 yang diubah, update juga ke summary Keuangan (uang_renov)
       if (kost === 'D2') {
         try {
           const dipinjamkan = Number(keuangan?.uang_tanah_lama || 0) + 
@@ -83,7 +82,7 @@ const KosankuPage: React.FC = () => {
             updated_at: serverTimestamp()
           });
         } catch (err) {
-          console.warn('Sync to keuangan summary error:', err);
+          console.warn('Sync error:', err);
         }
       }
 
@@ -250,7 +249,7 @@ const KosankuPage: React.FC = () => {
       />
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Den Kost {kost}</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-primary dark:text-sky-400">Den Kost {kost}</h2>
           <p className="text-gray-500 font-medium italic">Keterangan Uang Kosan · {kost === 'D2' ? 'Renovasi Baru' : 'Renovasi Lama'}</p>
         </div>
         <div className="grid grid-cols-2 md:flex md:gap-3 gap-2 w-full md:w-auto">
@@ -264,11 +263,11 @@ const KosankuPage: React.FC = () => {
           )}
           <button 
             onClick={handleExport}
-            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-gray-50 transition-all"
+            className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
           >
             <Download className="w-4 h-4 md:w-5 md:h-5" /> Export Excel
           </button>
-          <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white border border-gray-100 text-gray-600 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 transition-all">
+          <label className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl md:rounded-[24px] font-bold text-[10px] md:text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
             <Download className="w-4 h-4 md:w-5 md:h-5" /> Import XLSX
             <input type="file" hidden onChange={importExcel} accept=".xlsx, .xls" />
           </label>
@@ -281,6 +280,7 @@ const KosankuPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Tabs bar */}
       <div className="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 rounded-2xl w-full md:w-fit">
         {(['D1', 'D2'] as const).map((k) => (
           <button
@@ -289,7 +289,7 @@ const KosankuPage: React.FC = () => {
             className={cn(
               'flex-1 md:flex-none md:px-10 py-2.5 rounded-xl text-sm font-black tracking-wide transition-all',
               kost === k
-                ? 'bg-white dark:bg-slate-800 text-primary shadow-sm'
+                ? 'bg-white dark:bg-slate-800 text-primary dark:text-sky-400 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             )}
           >
@@ -331,6 +331,7 @@ const KosankuPage: React.FC = () => {
               <button 
                 onClick={() => { setIsEditingModal(true); setNewModalVal(totals.modalRenov.toString()); }}
                 className="p-1.5 hover:bg-sky-100 dark:hover:bg-sky-500/10 rounded-lg transition-all"
+                title="Edit Modal Renov"
               >
                 <Edit2 className="w-3 h-3 md:w-4 md:h-4 text-sky-600" />
               </button>
@@ -375,7 +376,7 @@ const KosankuPage: React.FC = () => {
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Bulan</label>
-              <input type="text" required value={form.bulan} onChange={e => setForm({...form, bulan: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" placeholder="Contoh: Januari" />
+              <input type="text" required value={form.bulan} onChange={e => setForm({...form, bulan: e.target.value})} className="w-full px-4 py-3.5 bg-gray-50 dark:bg-white/5 rounded-2xl outline-none font-medium" placeholder="Contoh: Januari" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Keluar</label>
@@ -389,7 +390,7 @@ const KosankuPage: React.FC = () => {
                   setLocalKeluar(formatRupiah(num));
                   setForm({...form, keluar: num});
                 }} 
-                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+                className="w-full px-4 py-3.5 bg-gray-50 dark:bg-white/5 rounded-2xl outline-none font-medium" 
               />
             </div>
             <div className="space-y-1.5">
@@ -404,7 +405,7 @@ const KosankuPage: React.FC = () => {
                   setLocalMasuk(formatRupiah(num));
                   setForm({...form, masuk: num});
                 }} 
-                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-medium" 
+                className="w-full px-4 py-3.5 bg-gray-50 dark:bg-white/5 rounded-2xl outline-none font-medium" 
               />
             </div>
             <button type="submit" className="bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20">Simpan Data</button>
@@ -428,11 +429,11 @@ const KosankuPage: React.FC = () => {
               {records.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                   <td className="px-3 md:px-6 py-3 md:py-5 text-slate-800 dark:text-slate-200 text-[10px] md:text-sm">{r.bulan}</td>
-                  <td className="px-3 md:px-6 py-3 md:py-5 text-danger text-[10px] md:text-sm">{formatRupiah(r.keluar)}</td>
-                  <td className="px-3 md:px-6 py-3 md:py-5 text-success text-[10px] md:text-sm">{formatRupiah(r.masuk)}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-5 text-red-500 text-[10px] md:text-sm">{formatRupiah(r.keluar)}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-5 text-emerald-500 text-[10px] md:text-sm">{formatRupiah(r.masuk)}</td>
                   <td className="px-3 md:px-6 py-3 md:py-5 text-primary dark:text-sky-400 text-xs md:text-base font-black">{formatRupiah(r.jumlah)}</td>
                   <td className="px-3 md:px-6 py-3 md:py-5 text-right">
-                    <button onClick={() => handleDelete(r.id)} className="p-1 md:p-2 text-gray-300 hover:text-danger hover:bg-danger/5 rounded-lg md:rounded-xl transition-all">
+                    <button onClick={() => handleDelete(r.id)} className="p-1 md:p-2 text-gray-300 hover:text-red-500 hover:bg-red-500/5 rounded-lg md:rounded-xl transition-all">
                       <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </button>
                   </td>
