@@ -1,61 +1,106 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
   addDoc, 
   serverTimestamp, 
   deleteDoc, 
   doc, 
-  getDocs, 
-  writeBatch 
+  writeBatch,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { KosanRecord } from '../types';
 import { formatRupiah, parseExcelValue } from '../lib/formulas';
-import { Plus, Trash2, TrendingUp, Wallet, Home, Download, Edit2, Check, X as XIcon } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Wallet, Home, Download, Edit2, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { useSettings } from '../hooks/useSettings';
+import { useKeuangan } from '../hooks/useKeuangan';
 import { useAuth } from '../context/AuthContext';
 import { logNotification } from '../lib/notifications';
 import { NotificationType } from '../types';
 import { AdminConfirmModal } from '../components/AdminConfirmModal';
 import { cn } from '../lib/utils';
-
 import { useKosan } from '../hooks/useKosan';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const KosankuPage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { settings, updateSettings } = useSettings();
+  const { data: keuangan } = useKeuangan();
   const { isAdmin } = useAuth();
-  const [kost, setKost] = useState<'D1' | 'D2'>('D1');
+
+  const initialKost = location.pathname.endsWith('/d2') ? 'D2' : 'D1';
+  const [kost, setKost] = useState<'D1' | 'D2'>(initialKost);
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/d2')) {
+      setKost('D2');
+    } else if (location.pathname.endsWith('/d1')) {
+      setKost('D1');
+    }
+  }, [location.pathname]);
+
   const { records, totals, loading } = useKosan(kost);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ bulan: '', masuk: 0, keluar: 0, keterangan: '' });
   const [localMasuk, setLocalMasuk] = useState('0');
   const [localKeluar, setLocalKeluar] = useState('0');
   const [isEditingModal, setIsEditingModal] = useState(false);
-  const [newModalVal, setNewModalVal] = useState(settings?.kosan_modal?.toString() || '15000000');
+  const [newModalVal, setNewModalVal] = useState('');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
-  // We don't need the local onSnapshot useEffect here anymore
-  // and we don't need the totals recalculation since useKosan handles it.
+  useEffect(() => {
+    setNewModalVal(totals.modalRenov.toString());
+  }, [totals.modalRenov]);
 
   const handleUpdateModal = async () => {
     if (!settings) return;
+    const numVal = Number(newModalVal) || 0;
     const modalPatch = kost === 'D2'
-      ? { kosan_modal_baru: Number(newModalVal) }
-      : { kosan_modal: Number(newModalVal) };
+      ? { kosan_modal_baru: numVal }
+      : { kosan_modal: numVal };
+
     const ok = await updateSettings({ ...settings, ...modalPatch });
+
     if (ok) {
+      // SINKRONISASI: Jika D2 yang diubah, update juga ke summary Keuangan (uang_renov)
+      if (kost === 'D2') {
+        try {
+          const dipinjamkan = Number(keuangan?.uang_tanah_lama || 0) + 
+                              Number(keuangan?.uang_tanah_baru || 0) + 
+                              Number(keuangan?.uang_stokbit || 0) + 
+                              numVal;
+                              
+          const bankNeo = Number(keuangan?.uang_cash || 0) - dipinjamkan;
+          const totalUntung = Number(keuangan?.uang_nasabah || 0) + bankNeo + dipinjamkan;
+
+          await updateDoc(doc(db, 'keuangan', 'summary'), {
+            uang_renov: numVal,
+            uang_dipinjamkan: dipinjamkan,
+            uang_bank_neo: bankNeo,
+            total_keuntungan: totalUntung,
+            updated_at: serverTimestamp()
+          });
+        } catch (err) {
+          console.warn('Sync to keuangan summary error:', err);
+        }
+      }
+
       await logNotification(
         'Modal Kosan Diperbarui',
-        `Modal renovasi Den Kost ${kost} diperbarui menjadi ${formatRupiah(Number(newModalVal))}.`,
+        `Modal renovasi Den Kost ${kost} diperbarui menjadi ${formatRupiah(numVal)}.`,
         NotificationType.INFO
       );
       setIsEditingModal(false);
     }
+  };
+
+  const handleTabChange = (k: 'D1' | 'D2') => {
+    setKost(k);
+    setShowAdd(false);
+    setIsEditingModal(false);
+    navigate(`/kosanku/${k.toLowerCase()}`);
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -102,7 +147,6 @@ const KosankuPage: React.FC = () => {
   const handleDeleteAll = async () => {
     try {
       const batch = writeBatch(db);
-      // Hanya hapus data Den Kost yang sedang aktif (tab terpilih)
       records.forEach((r) => {
         batch.delete(doc(db, 'kosanku', r.id));
       });
@@ -121,10 +165,7 @@ const KosankuPage: React.FC = () => {
     }
   };
 
-  const [isImporting, setImporting] = useState(false);
-
   const handleExport = () => {
-    // Export oldest to newest, just pass records as they are from oldest to newest
     const exportData = records.map(r => ({
       'Bulan': r.bulan,
       'Masuk': r.masuk,
@@ -134,26 +175,23 @@ const KosankuPage: React.FC = () => {
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
-    
-    // Auto-fit columns
     ws['!cols'] = [
-      { wch: 20 }, // Bulan
-      { wch: 20 }, // Masuk
-      { wch: 20 }, // Keluar
-      { wch: 30 }, // Keterangan
-      { wch: 20 }, // Saldo
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 20 },
     ];
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Kosanku');
-    XLSX.writeFile(wb, `Data_Kosanku_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, `DenKost_${kost}`);
+    XLSX.writeFile(wb, `Data_Kosanku_DenKost_${kost}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const importExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImporting(true);
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -164,14 +202,12 @@ const KosankuPage: React.FC = () => {
                        wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         
-        // Use range: 1 to start from Row 2 (the header row in screenshot)
         const data = XLSX.utils.sheet_to_json(ws, { range: 1 });
 
         let count = 0;
         for (const row of data as any[]) {
           const bulan = row.Bulan || row.bulan || row.Month || '';
           
-          // Skip summary rows or empty rows
           if (!bulan || String(bulan).toLowerCase().includes('jumlah') || String(bulan).toLowerCase().includes('modal') || String(bulan).toLowerCase().includes('sisa')) {
             continue;
           }
@@ -190,19 +226,16 @@ const KosankuPage: React.FC = () => {
           });
           count++;
         }
-        alert(`Berhasil impor ${count} data kosanku`);
+        alert(`Berhasil impor ${count} data kosanku untuk Den Kost ${kost}`);
       } catch (err: any) {
         console.error('Import Error:', err);
         alert('Gagal mengimpor file kosan: ' + err.message);
       } finally {
-        setImporting(false);
         if (e.target) e.target.value = '';
       }
     };
     reader.readAsBinaryString(file);
   };
-
-
 
   if (loading) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data kosan...</div>;
 
@@ -252,7 +285,7 @@ const KosankuPage: React.FC = () => {
         {(['D1', 'D2'] as const).map((k) => (
           <button
             key={k}
-            onClick={() => { setKost(k); setShowAdd(false); setIsEditingModal(false); }}
+            onClick={() => handleTabChange(k)}
             className={cn(
               'flex-1 md:flex-none md:px-10 py-2.5 rounded-xl text-sm font-black tracking-wide transition-all',
               kost === k
@@ -303,7 +336,9 @@ const KosankuPage: React.FC = () => {
               </button>
             )}
           </div>
-          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Modal Renov</p>
+          <p className="text-[7px] md:text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+            Modal Renov {kost === 'D2' ? '(Singkron Keuangan)' : ''}
+          </p>
           {isEditingModal ? (
             <div className="flex gap-1 mt-0.5 md:mt-1 relative z-10">
               <input 
