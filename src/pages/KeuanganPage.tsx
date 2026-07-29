@@ -2,13 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useKeuangan } from '../hooks/useKeuangan';
 import { useNasabah } from '../hooks/useNasabah';
 import { useSettings } from '../hooks/useSettings';
-import { doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { formatRupiah } from '../lib/formulas';
 import { Settings } from '../types';
 import { 
-  Save, 
-  RefreshCcw, 
   Landmark, 
   Wallet, 
   Map as MapIcon, 
@@ -19,7 +17,6 @@ import {
   Check,
   Plus,
   Trash2,
-  X,
   Upload
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -40,11 +37,45 @@ const KeuanganPage: React.FC = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [newLabelText, setNewLabelText] = useState('');
 
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryLabel, setNewCategoryLabel] = useState('');
+
+  // Calculate total debt from all customers
+  const totalSisaHutangNasabah = useMemo(() => {
+    if (!nasabahList) return 0;
+    return nasabahList.reduce((acc, curr) => acc + (curr.sisa_hutang || 0), 0);
+  }, [nasabahList]);
+
+  useEffect(() => {
+    if (keuangan) {
+      // Syncing uang_renov with settings.kosan_modal_baru if available
+      const currentUangRenov = settings?.kosan_modal_baru !== undefined 
+        ? settings.kosan_modal_baru 
+        : Number(keuangan.uang_renov || 0);
+
+      const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
+                          Number(keuangan.uang_tanah_baru || 0) + 
+                          Number(keuangan.uang_stokbit || 0) + 
+                          Number(currentUangRenov || 0);
+                          
+      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
+      const totalUntung = totalSisaHutangNasabah + bankNeo + dipinjamkan;
+
+      setForm({ 
+        ...keuangan, 
+        uang_renov: currentUangRenov,
+        uang_nasabah: totalSisaHutangNasabah,
+        uang_dipinjamkan: dipinjamkan,
+        uang_bank_neo: bankNeo,
+        total_keuntungan: totalUntung
+      });
+    }
+  }, [keuangan, totalSisaHutangNasabah, settings?.kosan_modal_baru]);
+
   const handleResetData = async () => {
     setSaving(true);
     try {
       const resetForm = { ...form };
-      // Reset all numeric fields to 0 except for totalSisaHutangNasabah which is derived
       Object.keys(resetForm).forEach(key => {
         if (typeof resetForm[key] === 'number' && key !== 'uang_nasabah') {
           resetForm[key] = 0;
@@ -62,41 +93,27 @@ const KeuanganPage: React.FC = () => {
     }
   };
 
-  // Calculate total debt from all customers
-  const totalSisaHutangNasabah = useMemo(() => {
-    if (!nasabahList) return 0;
-    return nasabahList.reduce((acc, curr) => acc + (curr.sisa_hutang || 0), 0);
-  }, [nasabahList]);
-
-  useEffect(() => {
-    if (keuangan) {
-      const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
-                          Number(keuangan.uang_tanah_baru || 0) + 
-                          Number(keuangan.uang_stokbit || 0) + 
-                          Number(keuangan.uang_renov || 0);
-                          
-      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
-      const totalUntung = totalSisaHutangNasabah + bankNeo + dipinjamkan;
-
-      setForm({ 
-        ...keuangan, 
-        uang_nasabah: totalSisaHutangNasabah,
-        uang_dipinjamkan: dipinjamkan,
-        uang_bank_neo: bankNeo,
-        total_keuntungan: totalUntung
-      });
-    }
-  }, [keuangan, totalSisaHutangNasabah]);
-
   const handleSave = async (updatedForm: any) => {
     setSaving(true);
     setSuccess(false);
     
     try {
+      const numRenov = Number(updatedForm.uang_renov || 0);
+
       await updateDoc(doc(db, 'keuangan', 'summary'), {
         ...updatedForm,
+        uang_renov: numRenov,
         updated_at: serverTimestamp()
       });
+
+      // Synchronize with settings.kosan_modal_baru for Den Kost D2 Modal Renov
+      if (settings) {
+        await updateSettings({
+          ...settings,
+          kosan_modal_baru: numRenov
+        });
+      }
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -106,9 +123,6 @@ const KeuanganPage: React.FC = () => {
       setSaving(false);
     }
   };
-
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [newCategoryLabel, setNewCategoryLabel] = useState('');
 
   const handleAddCustomField = async () => {
     if (!settings || !newCategoryLabel.trim()) return;
@@ -136,7 +150,7 @@ const KeuanganPage: React.FC = () => {
 
     const newSettings: Settings = {
       ...settings,
-      custom_categories: settings.custom_categories.filter(c => c.id !== id)
+      custom_categories: (settings.custom_categories || []).filter(c => c.id !== id)
     };
 
     const ok = await updateSettings(newSettings);
@@ -174,7 +188,7 @@ const KeuanganPage: React.FC = () => {
     } else {
       newSettings = {
         ...settings,
-        custom_categories: settings.custom_categories.map(c => 
+        custom_categories: (settings.custom_categories || []).map(c => 
           c.id === id ? { ...c, label: newLabelText } : c
         )
       };
@@ -191,19 +205,17 @@ const KeuanganPage: React.FC = () => {
     const num = parseInt(value.replace(/[^0-9]/g, '')) || 0;
     const newForm = { ...form, [key]: num };
     
-    // Formula calculations as per user request:
+    // Formula calculations:
     // 1. Uang yang dipinjamkan = Uang Tanah Lama + uang tanah baru + uang stokbit + uang renov
     const dipinjamkan = Number(newForm.uang_tanah_lama || 0) + 
                         Number(newForm.uang_tanah_baru || 0) + 
                         Number(newForm.uang_stokbit || 0) + 
                         Number(newForm.uang_renov || 0);
     
-    // 2. uang yang ada (bank neo) = Uang cash - uang yang di pinjamkan
+    // 2. uang yang ada (bank neo) = Uang cash - uang yang dipinjamkan
     const bankNeo = Number(newForm.uang_cash || 0) - dipinjamkan;
-
-    // 3. uang yang ada (nasabah) = sum of all sisa hutang (handled via useEffect)
     
-    // 4. total untung = uang nasabah + uang bank neo + uang dipinjamkan (Custom categories are now plain and not added)
+    // 3. total untung = uang nasabah + bank neo + dipinjamkan
     const totalUntung = (newForm.uang_nasabah || 0) + bankNeo + dipinjamkan;
 
     setForm({
@@ -227,7 +239,7 @@ const KeuanganPage: React.FC = () => {
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: TrendingUp, color: 'indigo', canEdit: true },
-    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renov', icon: Hammer, color: 'orange', canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renovasi Baru', icon: Hammer, color: 'orange', canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({
