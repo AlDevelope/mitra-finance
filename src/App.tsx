@@ -30,7 +30,7 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<LoginPage />} />
           
-          {/* Protected Routes */}
+          {/* Protected Layout Routes */}
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/nasabah" element={<NasabahPage />} />
@@ -43,12 +43,9 @@ export default function App() {
             <Route path="/pembayaran-sebagian" element={<PembayaranSebagianPage />} />
             <Route path="/dokumen" element={<DokumenPage />} />
             <Route path="/keuangan" element={<KeuanganPage />} />
-            
-            {/* Rute Kosanku D1 dan D2 */}
             <Route path="/kosanku" element={<Navigate to="/kosanku/d1" replace />} />
             <Route path="/kosanku/d1" element={<KosankuPage />} />
             <Route path="/kosanku/d2" element={<KosankuPage />} />
-            
             <Route path="/angsuran" element={<AngsuranLogPage />} />
             <Route path="/simulasi" element={<SimulasiPage />} />
             <Route path="/import" element={<ImportPage />} />
@@ -56,7 +53,7 @@ export default function App() {
             <Route path="/settings" element={<SystemSettings />} />
           </Route>
 
-          {/* Redirects */}
+          {/* Fallback Redirects */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
