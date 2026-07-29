@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { KosanRecord } from '../types';
 import { useSettings } from './useSettings';
 
@@ -35,7 +35,6 @@ export function useKosan(kost?: 'D1' | 'D2') {
         console.error('Error fetching kosan records:', err);
         setError('Gagal memuat data kosan');
         setLoading(false);
-        handleFirestoreError(err, OperationType.LIST, 'kosanku');
       }
     );
 
@@ -50,7 +49,10 @@ export function useKosan(kost?: 'D1' | 'D2') {
 
   const totals = useMemo(() => {
     const modalD1 = settings?.kosan_modal || 15000000;
-    const modalD2 = settings?.kosan_modal_baru || 0;
+    // D2 mengambil modal_renov dari settings.kosan_modal_baru (Uang Renovasi Baru di Keuangan)
+    const modalD2 = settings?.kosan_modal_baru !== undefined 
+      ? settings.kosan_modal_baru 
+      : (settings?.kosan_modal || 15000000);
 
     if (kost) {
       const terkumpul = records.reduce((acc, curr) => acc + (curr.masuk || 0), 0);
