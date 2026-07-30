@@ -1,32 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Building2, Wallet, Users, TrendingUp, AlertCircle, 
+  MapIcon, Hammer, Plus, Trash2, RotateCcw, Check, RefreshCw 
+} from 'lucide-react';
 import { useKeuangan } from '../hooks/useKeuangan';
 import { useNasabah } from '../hooks/useNasabah';
 import { useSettings } from '../hooks/useSettings';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { formatRupiah } from '../lib/formulas';
-import { Settings } from '../types';
-import { 
-  Landmark, 
-  Wallet, 
-  Map as MapIcon, 
-  TrendingUp, 
-  Hammer,
-  DollarSign,
-  Edit2,
-  Check,
-  Plus,
-  Trash2,
-  Upload
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { AdminConfirmModal } from '../components/AdminConfirmModal';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
-const KeuanganPage: React.FC = () => {
-  const { isAdmin } = useAuth();
+export function KeuanganPage() {
   const { data: keuangan, loading: loadingKeuangan, error: errorKeuangan } = useKeuangan();
   const { data: nasabahList, loading: loadingNasabah } = useNasabah();
   const { settings, updateSettings } = useSettings();
@@ -34,214 +17,194 @@ const KeuanganPage: React.FC = () => {
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [newLabelText, setNewLabelText] = useState('');
-
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryLabel, setNewCategoryLabel] = useState('');
 
-  // Hitung total sisa hutang nasabah
+  // 1. Hitung total sisa hutang nasabah secara otomatis
   const totalSisaHutangNasabah = useMemo(() => {
     if (!nasabahList) return 0;
     return nasabahList.reduce((acc, curr) => acc + (curr.sisa_hutang || 0), 0);
   }, [nasabahList]);
 
+  // Inisialisasi form dari data Firestore (hanya saat pertama kali muat)
   useEffect(() => {
-    if (keuangan) {
-      const currentUangRenovBaru = Number(keuangan.uang_renov ?? 6000000);
-      const currentUangRenovLama = Number(keuangan.uang_renov_lama ?? 0);
-
-      const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
-                          Number(keuangan.uang_tanah_baru || 0) + 
-                          Number(keuangan.uang_stokbit || 0) + 
-                          currentUangRenovBaru +
-                          currentUangRenovLama;
-                          
-      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
-      const totalUntung = totalSisaHutangNasabah + Number(keuangan.uang_cash || 0);
-
+    if (keuangan && !form) {
       setForm({ 
-        ...keuangan, 
-        uang_renov: currentUangRenovBaru,
-        uang_renov_lama: currentUangRenovLama,
-        uang_nasabah: totalSisaHutangNasabah,
-        uang_dipinjamkan: dipinjamkan,
-        uang_bank_neo: bankNeo,
-        total_keuntungan: totalUntung
+        uang_cash: Number(keuangan.uang_cash || 0),
+        uang_tanah_lama: Number(keuangan.uang_tanah_lama || 0),
+        uang_tanah_baru: Number(keuangan.uang_tanah_baru || 0),
+        uang_stokbit: Number(keuangan.uang_stokbit || 0),
+        uang_renov: Number(keuangan.uang_renov ?? 6000000),
+        uang_renov_lama: Number(keuangan.uang_renov_lama ?? 0),
+        ...keuangan
       });
     }
-  }, [keuangan, totalSisaHutangNasabah]);
+  }, [keuangan, form]);
+
+  // 2. Kotakan Merah (Uang Dipinjamkan) = Penjumlahan Kotakan Hijau
+  // (Tanah Lama + Tanah Baru + Stokbit + Renov Baru + Renov Lama + kategori custom)
+  const computedDipinjamkan = useMemo(() => {
+    if (!form) return 0;
+    const tanahLama = Number(form.uang_tanah_lama || 0);
+    const tanahBaru = Number(form.uang_tanah_baru || 0);
+    const stokbit = Number(form.uang_stokbit || 0);
+    const renovBaru = Number(form.uang_renov || 0);
+    const renovLama = Number(form.uang_renov_lama || 0);
+
+    const customSum = (settings?.custom_categories || []).reduce((acc, cat) => {
+      return acc + Number(form[cat.id] || 0);
+    }, 0);
+
+    return tanahLama + tanahBaru + stokbit + renovBaru + renovLama + customSum;
+  }, [form, settings?.custom_categories]);
+
+  // 3. Uang Bank Neo = Uang Cash - Uang Dipinjamkan
+  const computedBankNeo = useMemo(() => {
+    if (!form) return 0;
+    const cash = Number(form.uang_cash || 0);
+    return cash - computedDipinjamkan;
+  }, [form, computedDipinjamkan]);
+
+  // 4. Total Untung = Uang Nasabah + Uang Cash
+  const computedTotalUntung = useMemo(() => {
+    if (!form) return 0;
+    const cash = Number(form.uang_cash || 0);
+    return totalSisaHutangNasabah + cash;
+  }, [form, totalSisaHutangNasabah]);
 
   const handleResetData = async () => {
     setSaving(true);
     try {
       const resetForm = { ...form };
+      const readonlyKeys = ['uang_nasabah', 'uang_bank_neo', 'uang_dipinjamkan', 'total_keuntungan'];
       Object.keys(resetForm).forEach(key => {
-        if (typeof resetForm[key] === 'number' && key !== 'uang_nasabah') {
+        if (typeof resetForm[key] === 'number' && !readonlyKeys.includes(key)) {
           resetForm[key] = 0;
         }
       });
-      
-      await handleSave(resetForm);
+
       setForm(resetForm);
+      await handleSave(resetForm);
       setShowDeleteAllModal(false);
       alert('Data keuangan berhasil direset.');
     } catch (err) {
+      console.error(err);
       alert('Gagal mereset data.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSave = async (updatedForm: any) => {
+  const handleSave = async (formToSave?: any) => {
+    const dataToSave = formToSave || form;
+    if (!dataToSave) return;
+
     setSaving(true);
     setSuccess(false);
     
     try {
-      const numRenovBaru = Number(updatedForm.uang_renov || 0);
-      const numRenovLama = Number(updatedForm.uang_renov_lama || 0);
-
-      await updateDoc(doc(db, 'keuangan', 'summary'), {
-        ...updatedForm,
-        uang_renov: numRenovBaru,
-        uang_renov_lama: numRenovLama,
+      const payload = {
+        ...dataToSave,
+        uang_nasabah: totalSisaHutangNasabah,
+        uang_dipinjamkan: computedDipinjamkan,
+        uang_bank_neo: computedBankNeo,
+        total_keuntungan: computedTotalUntung,
+        uang_cash: Number(dataToSave.uang_cash || 0),
+        uang_tanah_lama: Number(dataToSave.uang_tanah_lama || 0),
+        uang_tanah_baru: Number(dataToSave.uang_tanah_baru || 0),
+        uang_stokbit: Number(dataToSave.uang_stokbit || 0),
+        uang_renov: Number(dataToSave.uang_renov || 0),
+        uang_renov_lama: Number(dataToSave.uang_renov_lama || 0),
         updated_at: serverTimestamp()
-      });
+      };
 
-      if (settings) {
-        await updateSettings({
-          ...settings,
-          kosan_modal_baru: numRenovBaru,
-          kosan_modal: numRenovLama > 0 ? numRenovLama : settings.kosan_modal
-        });
-      }
+      await updateDoc(doc(db, 'keuangan', 'summary'), payload);
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error('Error saving keuangan:', err);
-      alert('Gagal menyimpan data keuangan');
+      console.error('Error saving summary:', err);
+      alert('Gagal menyimpan data.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAddCustomField = async () => {
-    if (!settings || !newCategoryLabel.trim()) return;
+  const handleAddCategory = async () => {
+    if (!newCategoryLabel.trim() || !settings) return;
     
-    const id = 'custom_' + Date.now();
-    const newSettings: Settings = {
-      ...settings,
-      custom_categories: [...(settings.custom_categories || []), { id, label: newCategoryLabel.trim() }]
-    };
-    
-    setSaving(true);
-    const ok = await updateSettings(newSettings);
-    if (ok) {
-      const newForm = { ...form, [id]: 0 };
-      setForm(newForm);
-      await handleSave(newForm);
-      setIsAddingCategory(false);
+    const categoryId = `custom_${Date.now()}`;
+    const newCategories = [
+      ...(settings.custom_categories || []),
+      { id: categoryId, label: newCategoryLabel.trim() }
+    ];
+
+    try {
+      await updateSettings({
+        ...settings,
+        custom_categories: newCategories
+      });
+
+      setForm({
+        ...form,
+        [categoryId]: 0
+      });
+
       setNewCategoryLabel('');
+      setShowAddModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menambah kotak baru');
     }
-    setSaving(false);
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!settings || !window.confirm('Hapus kategori ini? Data saldo di dalamnya akan hilang.')) return;
+    if (!settings) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus kotak ini?')) return;
 
-    const newSettings: Settings = {
-      ...settings,
-      custom_categories: (settings.custom_categories || []).filter(c => c.id !== id)
-    };
+    const newCategories = (settings.custom_categories || []).filter(c => c.id !== id);
+    try {
+      await updateSettings({
+        ...settings,
+        custom_categories: newCategories
+      });
 
-    const ok = await updateSettings(newSettings);
-    if (ok) {
       const newForm = { ...form };
       delete newForm[id];
       setForm(newForm);
-      await handleSave(newForm);
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus kotak');
     }
   };
 
-  const startEditLabel = (id: string, currentLabel: string) => {
-    setEditingField(id);
-    setNewLabelText(currentLabel);
-  };
-
-  const saveNewLabel = async (id: string) => {
-    if (!settings) return;
-
-    let newSettings: Settings;
-    const isCoreField = [
-      'uang_cash', 'uang_nasabah', 'uang_bank_neo', 'uang_dipinjamkan', 
-      'total_keuntungan', 'uang_tanah_lama', 'uang_tanah_baru', 
-      'uang_stokbit', 'uang_renov', 'uang_renov_lama'
-    ].includes(id);
-
-    if (isCoreField) {
-      newSettings = {
-        ...settings,
-        category_labels: {
-          ...settings.category_labels,
-          [id]: newLabelText
-        }
-      };
-    } else {
-      newSettings = {
-        ...settings,
-        custom_categories: (settings.custom_categories || []).map(c => 
-          c.id === id ? { ...c, label: newLabelText } : c
-        )
-      };
-    }
-
-    const ok = await updateSettings(newSettings);
-    if (ok) {
-      setEditingField(null);
-      handleSave(form);
-    }
+  const formatRupiah = (num: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
+    }).format(num);
   };
 
   const handleChange = (key: string, value: string) => {
+    const readonlyKeys = ['uang_nasabah', 'uang_bank_neo', 'uang_dipinjamkan', 'total_keuntungan'];
+    if (readonlyKeys.includes(key)) return;
+
     const num = parseInt(value.replace(/[^0-9]/g, '')) || 0;
-    const newForm = { ...form, [key]: num };
-    
-    // Formula calculations:
-    // 1. Uang yang dipinjamkan = Uang Tanah Lama + Uang tanah baru + Uang stokbit + Uang Renovasi Baru + Uang Renovasi Lama
-    const renovBaru = Number(newForm.uang_renov || 0);
-    const renovLama = Number(newForm.uang_renov_lama || 0);
-
-    const dipinjamkan = Number(newForm.uang_tanah_lama || 0) + 
-                        Number(newForm.uang_tanah_baru || 0) + 
-                        Number(newForm.uang_stokbit || 0) + 
-                        renovBaru +
-                        renovLama;
-    
-    // 2. Uang Bank Neo = Uang cash - Uang yang dipinjamkan
-    const bankNeo = Number(newForm.uang_cash || 0) - dipinjamkan;
-    
-    // 3. Total Untung = Uang nasabah + Uang cash
-    const totalUntung = Number(newForm.uang_nasabah || 0) + Number(newForm.uang_cash || 0);
-
-    setForm({
-      ...newForm,
-      uang_dipinjamkan: dipinjamkan,
-      uang_bank_neo: bankNeo,
-      total_keuntungan: totalUntung
-    });
+    setForm((prev: any) => ({
+      ...prev,
+      [key]: num
+    }));
   };
 
   if (loadingKeuangan || loadingNasabah) return <div className="p-8 text-center text-gray-400 font-bold">Memuat data keuangan...</div>;
-  if (errorKeuangan) return <div className="p-8 text-center text-danger font-bold">Error: {errorKeuangan}</div>;
-  if (!form) return <div className="p-8 text-center text-gray-400 font-bold">Menyiapkan data...</div>;
 
-  const coreFields = [
+  const defaultFields = [
     { key: 'uang_cash', label: settings?.category_labels?.uang_cash || 'Uang Cash', icon: Wallet, color: 'emerald', canEdit: true },
-    { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Landmark, color: 'primary', readonly: true, canEdit: true },
-    { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Landmark, color: 'sky', readonly: true, canEdit: true },
-    { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: DollarSign, color: 'amber', readonly: true, canEdit: true },
+    { key: 'uang_nasabah', label: settings?.category_labels?.uang_nasabah || 'Uang Nasabah (Nasabah)', icon: Users, color: 'blue', readonly: true, canEdit: true },
+    { key: 'uang_bank_neo', label: settings?.category_labels?.uang_bank_neo || 'Uang Bank Neo', icon: Building2, color: 'cyan', readonly: true, canEdit: true },
+    { key: 'uang_dipinjamkan', label: settings?.category_labels?.uang_dipinjamkan || 'Uang Dipinjamkan', icon: AlertCircle, color: 'amber', readonly: true, canEdit: true },
     { key: 'total_keuntungan', label: settings?.category_labels?.total_keuntungan || 'Total Untung', icon: TrendingUp, color: 'accent', readonly: true, canEdit: true },
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
@@ -250,192 +213,217 @@ const KeuanganPage: React.FC = () => {
     { key: 'uang_renov_lama', label: settings?.category_labels?.uang_renov_lama || 'Uang Renovasi Lama', icon: Hammer, color: 'slate', canEdit: true },
   ];
 
-  const customFields = (settings?.custom_categories || []).map(c => ({
-    key: c.id,
-    label: c.label,
+  const customFields = (settings?.custom_categories || []).map(cat => ({
+    key: cat.id,
+    label: cat.label,
     icon: Wallet,
     color: 'slate',
-    canEdit: true,
-    canDelete: true
+    isCustom: true,
+    canEdit: true
   }));
 
-  const allFields = [...coreFields, ...customFields];
+  const allFields = [...defaultFields, ...customFields];
 
   return (
-    <div className="space-y-8">
-      <AdminConfirmModal 
-        isOpen={showDeleteAllModal}
-        onClose={() => setShowDeleteAllModal(false)}
-        onConfirm={handleResetData}
-        title="Reset Data Keuangan"
-        message="Hati-hati! Tindakan ini akan meriset seluruh nilai pemasukan dan pengeluaran menjadi Rp 0. Data kategori kustom akan tetap ada."
-      />
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 md:mb-12">
-        <div className="space-y-1">
-          <h2 className="text-xl md:text-3xl font-black tracking-tight text-primary dark:text-sky-400">Mitra Finance 99</h2>
-          <p className="text-[10px] md:text-base text-gray-500 font-medium italic">"Berkembang, Bertumbuh, Berinovasi"</p>
+    <div className="p-6 max-w-[1600px] mx-auto space-y-8 min-h-screen text-slate-100">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/80 backdrop-blur-xl">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 via-sky-400 to-indigo-400 bg-clip-text text-transparent">
+            Mitra Finance 99
+          </h1>
+          <p className="text-slate-400 text-sm mt-1 font-medium italic">
+            "Berkembang, Bertumbuh, Berinovasi"
+          </p>
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 md:gap-4 w-full sm:w-auto">
-          {isAdmin && (
-            <button 
-              type="button"
-              onClick={() => setShowDeleteAllModal(true)}
-              className="bg-red-50 text-red-500 px-3 md:px-5 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-1.5 md:gap-2 hover:bg-red-100 transition-all border border-red-100 text-[10px] md:text-sm"
-            >
-              <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              Reset Data
-            </button>
-          )}
-          <Link to="/import" className="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 md:px-5 py-2 md:py-3 rounded-xl md:rounded-[20px] font-bold text-[10px] md:text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all">
-            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            Impor
-          </Link>
-          <button 
-            type="button"
-            onClick={() => setIsAddingCategory(true)}
-            className="col-span-2 md:col-span-1 bg-accent text-white px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[24px] font-black text-[10px] md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] active:scale-[0.95] transition-all shadow-xl shadow-accent/20"
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowDeleteAllModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+            <RotateCcw className="w-4 h-4" />
+            Reset Data
+          </button>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
             Tambah Kotak
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Categories Modal */}
-      {isAddingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-md p-8 shadow-2xl space-y-6">
-            <div>
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Kategori Baru</h3>
-              <p className="text-sm text-gray-500 mt-1">Masukkan nama kotak keuangan baru Anda.</p>
+      {errorKeuangan && (
+        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>Gagal memuat data keuangan: {errorKeuangan.message}</span>
+        </div>
+      )}
+
+      {/* Grid Kotak Keuangan */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {allFields.map((field) => {
+          const Icon = field.icon;
+
+          return (
+            <div
+              key={field.key}
+              className={`relative group p-5 rounded-2xl border transition-all duration-300 backdrop-blur-md flex flex-col justify-between ${
+                field.key === 'uang_dipinjamkan'
+                  ? 'bg-rose-950/20 border-rose-500/40 hover:border-rose-500/60 shadow-lg shadow-rose-950/30'
+                  : field.key === 'uang_bank_neo' && computedBankNeo < 0
+                  ? 'bg-amber-950/20 border-amber-500/40 hover:border-amber-500/60 shadow-lg shadow-amber-950/30'
+                  : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+                    {field.label}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {field.isCustom && (
+                    <button
+                      onClick={() => handleDeleteCategory(field.key)}
+                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                      title="Hapus Kotak"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  <div className="p-2.5 bg-slate-800/60 border border-slate-700/50 rounded-xl text-slate-300">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  readOnly={field.readonly}
+                  value={
+                    field.key === 'uang_nasabah'
+                      ? formatRupiah(totalSisaHutangNasabah)
+                      : field.key === 'uang_bank_neo'
+                      ? formatRupiah(computedBankNeo)
+                      : field.key === 'uang_dipinjamkan'
+                      ? formatRupiah(computedDipinjamkan)
+                      : field.key === 'total_keuntungan'
+                      ? formatRupiah(computedTotalUntung)
+                      : formatRupiah(form?.[field.key] || 0)
+                  }
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  className={`w-full bg-slate-950/60 border rounded-xl px-4 py-3 font-extrabold text-xl tracking-tight transition-all outline-none ${
+                    field.readonly
+                      ? 'border-slate-800/60 text-slate-300 cursor-not-allowed bg-slate-900/20'
+                      : 'border-slate-700/80 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                  }`}
+                />
+              </div>
             </div>
-            <input 
-              autoFocus
-              type="text"
-              placeholder="Contoh: Tabungan Haji"
-              value={newCategoryLabel}
-              onChange={e => setNewCategoryLabel(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-gray-900 dark:text-white font-bold outline-none focus:border-accent transition-all"
-            />
-            <div className="flex gap-4">
-              <button 
-                type="button"
-                onClick={() => setIsAddingCategory(false)}
-                className="flex-1 bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+          );
+        })}
+      </div>
+
+      {/* Tombol Simpan */}
+      <div className="flex justify-end pt-4">
+        <button
+          onClick={() => handleSave()}
+          disabled={saving}
+          className="flex items-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              Menyimpan...
+            </>
+          ) : success ? (
+            <>
+              <Check className="w-5 h-5 text-emerald-400" />
+              Tersimpan!
+            </>
+          ) : (
+            'TERAPKAN PERUBAHAN'
+          )}
+        </button>
+      </div>
+
+      {/* Modal Tambah Kotak */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-6 shadow-2xl">
+            <div>
+              <h3 className="text-xl font-bold text-white">Tambah Kotak Kategori Baru</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Buat kotak baru untuk mencatat posisi keuangan tambahan.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Nama Kategori
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Uang Operasional"
+                value={newCategoryLabel}
+                onChange={(e) => setNewCategoryLabel(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2.5 text-slate-400 hover:text-white font-semibold text-sm transition-colors"
               >
                 Batal
               </button>
-              <button 
-                type="button"
-                disabled={saving || !newCategoryLabel.trim()}
-                onClick={handleAddCustomField}
-                className="flex-1 bg-accent text-white py-4 rounded-2xl font-black hover:scale-[1.02] active:scale-[0.95] transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
+              <button
+                onClick={handleAddCategory}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold transition-all"
               >
-                {saving ? 'Menyimpan...' : 'Tambah'}
+                Tambah
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-        {allFields.map((field) => (
-          <div key={field.key} className="glass p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl lg:rounded-[40px] space-y-2 md:space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[100px] md:min-h-[160px] border border-white/10 shadow-sm transition-all duration-300 hover:shadow-xl">
-             <div className={cn("absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full opacity-[0.03] md:opacity-[0.05] transition-transform group-hover:scale-110", 
-               field.color === 'primary' ? 'bg-primary' : (field.color === 'accent' ? 'bg-accent' : `bg-${field.color}-500`))} />
-             
-             {field.canDelete && !editingField && (
-              <button 
-                type="button"
-                onClick={() => handleDeleteCategory(field.key)}
-                className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-300 hover:text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+      {/* Modal Reset Data */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-6 shadow-2xl">
+            <div>
+              <h3 className="text-xl font-bold text-white">Reset Semua Data Keuangan?</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Tindakan ini akan mengosongkan semua nominal input keuangan menjadi Rp 0. Data nasabah tidak akan terhapus.
+              </p>
+            </div>
 
-            <div className="flex flex-col md:flex-row md:justify-between items-start md:items-start gap-2 md:gap-4">
-              <div className="flex-1 min-w-0 w-full">
-                {editingField === field.key ? (
-                  <div className="flex gap-1 mb-1 animate-in slide-in-from-top-1 duration-200">
-                    <input 
-                      type="text" 
-                      autoFocus
-                      value={newLabelText}
-                      onChange={(e) => setNewLabelText(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && saveNewLabel(field.key)}
-                      className="flex-1 min-w-0 px-2 py-1 bg-white border border-accent/20 rounded-lg text-[8px] md:text-[10px] font-bold outline-none"
-                    />
-                    <button type="button" onClick={() => saveNewLabel(field.key)} className="p-1 px-1.5 bg-accent text-white rounded-lg">
-                      <Check className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <label className="text-[7px] md:text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">{field.label}</label>
-                    {field.canEdit && (
-                      <button 
-                        type="button"
-                        onClick={() => startEditLabel(field.key, field.label)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 dark:text-gray-500 hover:text-accent transition-all"
-                      >
-                        <Edit2 className="w-2.5 h-2.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-                
-                <input
-                   type="text"
-                   readOnly={field.readonly}
-                   value={
-                     field.key === 'uang_bank_neo'
-                       ? formatRupiah(Number(form?.uang_cash || 0) - (Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0) + Number(form?.uang_renov_lama || 0)))
-                       : field.key === 'uang_dipinjamkan'
-                       ? formatRupiah(Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0) + Number(form?.uang_renov_lama || 0))
-                       : field.key === 'total_keuntungan'
-                       ? formatRupiah(Number(form?.uang_nasabah || 0) + Number(form?.uang_cash || 0))
-                       : formatRupiah(form?.[field.key] || 0)
-                   }
-                   onChange={(e) => handleChange(field.key, e.target.value)}
-                   className={cn(
-                     "w-full bg-transparent text-[10px] sm:text-xs md:text-2xl font-black text-slate-900 dark:text-slate-100 outline-none border-b-2 border-transparent transition-all truncate",
-                     field.readonly ? "cursor-default opacity-70" : "focus:border-accent"
-                   )}
-                />
-              </div>
-              <div className={cn(
-                "hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl items-center justify-center shrink-0 shadow-sm transition-colors",
-                field.color === 'primary' ? 'bg-primary/10 text-primary' : 
-                (field.color === 'accent' ? 'bg-accent/10 text-accent' : `bg-${field.color}-500/10 text-${field.color}-600 dark:text-${field.color}-400`)
-              )}>
-                <field.icon className="w-4 h-4 md:w-6 md:h-6" />
-              </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteAllModal(false)}
+                className="px-4 py-2.5 text-slate-400 hover:text-white font-semibold text-sm transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleResetData}
+                disabled={saving}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-semibold transition-all"
+              >
+                Reset Sekarang
+              </button>
             </div>
           </div>
-        ))}
-
-        <div className="md:col-span-2 lg:col-span-3 flex justify-end items-center gap-4 md:gap-6 sticky bottom-4 z-20 md:relative md:bottom-0 mt-4 md:mt-8">
-          {success && (
-            <motion.p 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="hidden sm:block text-green-500 font-bold bg-green-50 px-6 py-3 rounded-2xl shadow-sm border border-green-100"
-            >
-              Berhasil diperbarui!
-            </motion.p>
-          )}
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full sm:w-auto px-6 md:px-12 py-3.5 md:py-5 bg-accent text-white rounded-xl md:rounded-[24px] font-black text-[10px] md:text-base shadow-2xl shadow-accent/30 hover:scale-[1.05] active:scale-[0.95] transition-all disabled:opacity-50 flex items-center justify-center gap-2 md:gap-3"
-          >
-            {saving ? 'Menyimpan...' : 'TERAPKAN PERUBAHAN'}
-          </button>
         </div>
-      </form>
+      )}
     </div>
   );
-};
-
-export default KeuanganPage;
+}
