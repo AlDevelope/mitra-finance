@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useKeuangan } from '../hooks/useKeuangan';
 import { useNasabah } from '../hooks/useNasabah';
 import { useSettings } from '../hooks/useSettings';
-import { useKosan } from '../hooks/useKosan';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { formatRupiah } from '../lib/formulas';
@@ -31,10 +30,6 @@ const KeuanganPage: React.FC = () => {
   const { data: keuangan, loading: loadingKeuangan, error: errorKeuangan } = useKeuangan();
   const { data: nasabahList, loading: loadingNasabah } = useNasabah();
   const { settings, updateSettings } = useSettings();
-  const { totals: totalsD2 } = useKosan('D2');
-  
-  // Sisa modal Den Kost D2 (Uang Renovasi Baru) = Modal D2 - Uang Bersih D2
-  const sisaRenovBaruD2 = totalsD2.sisa;
 
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
@@ -46,7 +41,7 @@ const KeuanganPage: React.FC = () => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryLabel, setNewCategoryLabel] = useState('');
 
-  // Calculate total debt from all customers
+  // Hitung total sisa hutang nasabah
   const totalSisaHutangNasabah = useMemo(() => {
     if (!nasabahList) return 0;
     return nasabahList.reduce((acc, curr) => acc + (curr.sisa_hutang || 0), 0);
@@ -54,8 +49,8 @@ const KeuanganPage: React.FC = () => {
 
   useEffect(() => {
     if (keuangan) {
-      const currentUangRenovBaru = sisaRenovBaruD2;
-      const currentUangRenovLama = Number(keuangan.uang_renov_lama || 0);
+      const currentUangRenovBaru = Number(keuangan.uang_renov ?? 6000000);
+      const currentUangRenovLama = Number(keuangan.uang_renov_lama ?? 0);
 
       const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
                           Number(keuangan.uang_tanah_baru || 0) + 
@@ -76,14 +71,14 @@ const KeuanganPage: React.FC = () => {
         total_keuntungan: totalUntung
       });
     }
-  }, [keuangan, totalSisaHutangNasabah, sisaRenovBaruD2]);
+  }, [keuangan, totalSisaHutangNasabah]);
 
   const handleResetData = async () => {
     setSaving(true);
     try {
       const resetForm = { ...form };
       Object.keys(resetForm).forEach(key => {
-        if (typeof resetForm[key] === 'number' && key !== 'uang_nasabah' && key !== 'uang_renov') {
+        if (typeof resetForm[key] === 'number' && key !== 'uang_nasabah') {
           resetForm[key] = 0;
         }
       });
@@ -104,7 +99,7 @@ const KeuanganPage: React.FC = () => {
     setSuccess(false);
     
     try {
-      const numRenovBaru = sisaRenovBaruD2;
+      const numRenovBaru = Number(updatedForm.uang_renov || 0);
       const numRenovLama = Number(updatedForm.uang_renov_lama || 0);
 
       await updateDoc(doc(db, 'keuangan', 'summary'), {
@@ -113,6 +108,14 @@ const KeuanganPage: React.FC = () => {
         uang_renov_lama: numRenovLama,
         updated_at: serverTimestamp()
       });
+
+      if (settings) {
+        await updateSettings({
+          ...settings,
+          kosan_modal_baru: numRenovBaru,
+          kosan_modal: numRenovLama > 0 ? numRenovLama : settings.kosan_modal
+        });
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -206,8 +209,8 @@ const KeuanganPage: React.FC = () => {
     const newForm = { ...form, [key]: num };
     
     // Formula calculations:
-    // 1. Uang yang dipinjamkan = Uang Tanah Lama + Uang tanah baru + Uang stokbit + Uang Renovasi Baru (sisaRenovBaruD2) + Uang Renovasi Lama
-    const renovBaru = sisaRenovBaruD2;
+    // 1. Uang yang dipinjamkan = Uang Tanah Lama + Uang tanah baru + Uang stokbit + Uang Renovasi Baru + Uang Renovasi Lama
+    const renovBaru = Number(newForm.uang_renov || 0);
     const renovLama = Number(newForm.uang_renov_lama || 0);
 
     const dipinjamkan = Number(newForm.uang_tanah_lama || 0) + 
@@ -224,7 +227,6 @@ const KeuanganPage: React.FC = () => {
 
     setForm({
       ...newForm,
-      uang_renov: renovBaru,
       uang_dipinjamkan: dipinjamkan,
       uang_bank_neo: bankNeo,
       total_keuntungan: totalUntung
@@ -243,7 +245,8 @@ const KeuanganPage: React.FC = () => {
     { key: 'total_keuntungan', label: settings?.category_labels?.total_keuntungan || 'Total Untung', icon: TrendingUp, color: 'accent', readonly: true, canEdit: true },
     { key: 'uang_tanah_lama', label: settings?.category_labels?.uang_tanah_lama || 'Uang Tanah Lama', icon: MapIcon, color: 'slate', canEdit: true },
     { key: 'uang_tanah_baru', label: settings?.category_labels?.uang_tanah_baru || 'Uang Tanah Baru', icon: MapIcon, color: 'slate', canEdit: true },
-    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renovasi Baru', icon: Hammer, color: 'orange', readonly: true, canEdit: true },
+    { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: Wallet, color: 'slate', canEdit: true },
+    { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renovasi Baru', icon: Hammer, color: 'orange', canEdit: true },
     { key: 'uang_renov_lama', label: settings?.category_labels?.uang_renov_lama || 'Uang Renovasi Lama', icon: Hammer, color: 'slate', canEdit: true },
   ];
 
@@ -386,12 +389,10 @@ const KeuanganPage: React.FC = () => {
                    type="text"
                    readOnly={field.readonly}
                    value={
-                     field.key === 'uang_renov'
-                       ? formatRupiah(sisaRenovBaruD2)
-                       : field.key === 'uang_bank_neo'
-                       ? formatRupiah(Number(form?.uang_cash || 0) - (Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + sisaRenovBaruD2 + Number(form?.uang_renov_lama || 0)))
+                     field.key === 'uang_bank_neo'
+                       ? formatRupiah(Number(form?.uang_cash || 0) - (Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0) + Number(form?.uang_renov_lama || 0)))
                        : field.key === 'uang_dipinjamkan'
-                       ? formatRupiah(Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + sisaRenovBaruD2 + Number(form?.uang_renov_lama || 0))
+                       ? formatRupiah(Number(form?.uang_tanah_lama || 0) + Number(form?.uang_tanah_baru || 0) + Number(form?.uang_stokbit || 0) + Number(form?.uang_renov || 0) + Number(form?.uang_renov_lama || 0))
                        : field.key === 'total_keuntungan'
                        ? formatRupiah(Number(form?.uang_nasabah || 0) + Number(form?.uang_cash || 0))
                        : formatRupiah(form?.[field.key] || 0)
