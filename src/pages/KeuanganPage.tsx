@@ -60,13 +60,16 @@ const KeuanganPage: React.FC = () => {
       const currentUangRenovBaru = sisaRenovBaruD2;
       const currentUangRenovLama = sisaRenovLamaD1;
 
+      // 1. Uang yang dipinjamkan = Tanah Lama + Tanah Baru + Renov Baru + Renov Lama
       const dipinjamkan = Number(keuangan.uang_tanah_lama || 0) + 
                           Number(keuangan.uang_tanah_baru || 0) + 
-                          Number(keuangan.uang_stokbit || 0) + 
                           currentUangRenovBaru +
                           currentUangRenovLama;
                           
+      // 2. Uang Bank Neo = Uang Cash - Uang Dipinjamkan
       const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
+      
+      // 3. Total Untung = Uang Nasabah + Uang Cash
       const totalUntung = totalSisaHutangNasabah + Number(keuangan.uang_cash || 0);
 
       setForm({ 
@@ -177,7 +180,7 @@ const KeuanganPage: React.FC = () => {
     const isCoreField = [
       'uang_cash', 'uang_nasabah', 'uang_bank_neo', 'uang_dipinjamkan', 
       'total_keuntungan', 'uang_tanah_lama', 'uang_tanah_baru', 
-      'uang_stokbit', 'uang_renov', 'uang_renov_lama'
+      'uang_stokbit', 'uang_renov', 'uang_renov_lama', 'acc_keuntungan'
     ].includes(id);
 
     if (isCoreField) {
@@ -212,13 +215,12 @@ const KeuanganPage: React.FC = () => {
     const newForm = { ...form, [key]: num };
     
     // Formula calculations:
-    // 1. Uang yang dipinjamkan = Uang Tanah Lama + Uang tanah baru + Uang stokbit + Uang Renovasi Baru (sisaRenovBaruD2) + Uang Renovasi Lama (sisaRenovLamaD1)
     const renovBaru = sisaRenovBaruD2;
     const renovLama = sisaRenovLamaD1;
 
+    // 1. Uang yang dipinjamkan = Tanah Lama + Tanah Baru + Renov Baru + Renov Lama
     const dipinjamkan = Number(newForm.uang_tanah_lama || 0) + 
                         Number(newForm.uang_tanah_baru || 0) + 
-                        Number(newForm.uang_stokbit || 0) + 
                         renovBaru +
                         renovLama;
     
@@ -253,6 +255,7 @@ const KeuanganPage: React.FC = () => {
     { key: 'uang_stokbit', label: settings?.category_labels?.uang_stokbit || 'Uang Stokbit', icon: Wallet, color: 'slate', canEdit: true },
     { key: 'uang_renov', label: settings?.category_labels?.uang_renov || 'Uang Renovasi Baru', icon: Hammer, color: 'orange', readonly: true, canEdit: true },
     { key: 'uang_renov_lama', label: settings?.category_labels?.uang_renov_lama || 'Uang Renovasi Lama', icon: Hammer, color: 'slate', readonly: true, canEdit: true },
+    { key: 'acc_keuntungan', label: settings?.category_labels?.acc_keuntungan || 'ACC Keuntungan', icon: Wallet, color: 'slate', canEdit: true },
   ];
 
   const customFields = (settings?.custom_categories || []).map(c => ({
@@ -264,7 +267,10 @@ const KeuanganPage: React.FC = () => {
     canDelete: true
   }));
 
-  const allFields = [...coreFields, ...customFields];
+  // Jika kebetulan nama custom category sama dengan ACC Keuntungan yang lama, tidak perlu double
+  const filteredCustomFields = customFields.filter(c => c.label.toLowerCase() !== 'acc keuntungan');
+  
+  const allFields = [...coreFields, ...filteredCustomFields];
 
   return (
     <div className="space-y-8">
