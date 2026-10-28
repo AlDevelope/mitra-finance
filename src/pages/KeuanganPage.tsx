@@ -66,8 +66,9 @@ const KeuanganPage: React.FC = () => {
                           currentUangRenovBaru +
                           currentUangRenovLama;
                           
-      // 2. Uang Bank Neo = Uang Cash - Uang Dipinjamkan
-      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan;
+      // 2. Uang Bank Neo = Uang Cash - Uang Dipinjamkan - Uang Stokbit
+      const stokbit = Number(keuangan.uang_stokbit || 0);
+      const bankNeo = Number(keuangan.uang_cash || 0) - dipinjamkan - stokbit;
       
       // 3. Total Untung = Uang Nasabah + Uang Cash
       const totalUntung = totalSisaHutangNasabah + Number(keuangan.uang_cash || 0);
@@ -224,8 +225,9 @@ const KeuanganPage: React.FC = () => {
                         renovBaru +
                         renovLama;
     
-    // 2. Uang Bank Neo = Uang cash - Uang yang dipinjamkan
-    const bankNeo = Number(newForm.uang_cash || 0) - dipinjamkan;
+    // 2. Uang Bank Neo = Uang cash - Uang yang dipinjamkan - Uang stokbit
+    const stokbit = Number(newForm.uang_stokbit || 0);
+    const bankNeo = Number(newForm.uang_cash || 0) - dipinjamkan - stokbit;
     
     // 3. Total Untung = Uang nasabah + Uang cash
     const totalUntung = Number(newForm.uang_nasabah || 0) + Number(newForm.uang_cash || 0);
@@ -317,7 +319,7 @@ const KeuanganPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-[32px] w-full max-w-md p-8 shadow-2xl space-y-6">
             <div>
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Kategori Baru</h3>
+              <h3 className="text-2xl font-black text-gray-900 dark:white tracking-tight">Kategori Baru</h3>
               <p className="text-sm text-gray-500 mt-1">Masukkan nama kotak keuangan baru Anda.</p>
             </div>
             <input 
@@ -351,7 +353,7 @@ const KeuanganPage: React.FC = () => {
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(form); }} className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         {allFields.map((field) => (
-          <div key={field.key} className="glass p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl lg:rounded-[40px] space-y-2 md:space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[100px] md:min-h-[160px] border border-white/10 shadow-sm transition-all duration-300 hover:shadow-xl">
+          <div key={field.key} className="glass p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl lg:rounded-[40px] space-y-2 md:space-y-4 group relative overflow-hidden flex flex-col justify-between min-h-[100px] md:min-h-[160px] border border-slate-200 dark:border-white/10 shadow-sm transition-all duration-300 hover:shadow-xl">
              <div className={cn("absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full opacity-[0.03] md:opacity-[0.05] transition-transform group-hover:scale-110", 
                field.color === 'primary' ? 'bg-primary' : (field.color === 'accent' ? 'bg-accent' : `bg-${field.color}-500`))} />
              
